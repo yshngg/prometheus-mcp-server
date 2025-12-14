@@ -51,7 +51,7 @@ jobs:
       - name: Download artifact (main.breakdown)
         if: github.event_name == 'pull_request'
         id: download-main-breakdown
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         continue-on-error: true
         with:
           name: main.breakdown
@@ -82,7 +82,7 @@ jobs:
 
       - name: Upload artifact (main.breakdown)
         if: github.event_name == 'push' && github.ref_name == 'main'
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: main.breakdown
           path: main.breakdown # as specified via `breakdown-file-name`
