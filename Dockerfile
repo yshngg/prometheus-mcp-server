@@ -26,6 +26,10 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
 # Final image
 FROM alpine:3.23
 
+LABEL org.opencontainers.image.source=https://github.com/yshngg/prometheus-mcp-server
+LABEL org.opencontainers.image.description="A Prometheus Model Context Protocol Server."
+LABEL org.opencontainers.image.licenses=Apache-2.0
+
 WORKDIR /
 
 COPY --from=builder /app/prometheus-mcp-server /prometheus-mcp-server
