@@ -2,6 +2,7 @@
 
 [![codecov](https://codecov.io/gh/yshngg/prometheus-mcp-server/graph/badge.svg?token=C64XY9GFP3)](https://codecov.io/gh/yshngg/prometheus-mcp-server)
 [![Go Report Card](https://goreportcard.com/badge/github.com/yshngg/prometheus-mcp-server)](https://goreportcard.com/report/github.com/yshngg/prometheus-mcp-server)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fyshngg%2Fprometheus-mcp-server.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fyshngg%2Fprometheus-mcp-server?ref=badge_shield)
 
 **A Golang-based Model Context Protocol (MCP) server implementation for Prometheus that enables natural language interactions with Prometheus metrics and queries.**
 
@@ -291,6 +292,9 @@ make build
 This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
 
 ---
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fyshngg%2Fprometheus-mcp-server.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fyshngg%2Fprometheus-mcp-server?ref=badge_large)
 
 ## Acknowledgments
 
