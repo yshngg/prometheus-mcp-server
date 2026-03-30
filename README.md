@@ -28,6 +28,10 @@
 
 ---
 
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/yshngg-pmcp).
+
 ## Features
 
 - **🔥 Golang Implementation**: Built with Go 1.23+ for performance, reliability, and type safety
