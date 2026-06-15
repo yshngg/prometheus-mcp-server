@@ -101,7 +101,7 @@ jobs:
             ${{ fromJSON(steps.coverage.outputs.report) }}```
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: cover.out
