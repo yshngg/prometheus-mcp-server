@@ -21,12 +21,12 @@ func (b *binder) addTools() {
 	{
 		expressionQuerier := expressionquery.NewExpressionQuerier(b.api)
 		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "Instant Query",
+			Name:        "instant-query",
 			Description: "Evaluate an instant query at a single point in time.",
 		}, expressionQuerier.InstantQueryHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "Range Query",
+			Name:        "range-query",
 			Description: "Evaluate an expression query over a range of time.",
 		}, expressionQuerier.RangeQueryHandler)
 	}
@@ -36,27 +36,27 @@ func (b *binder) addTools() {
 	{
 		metadataQuerier := metadataquery.NewMetadataQuerier(b.api)
 		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "Find Series by Labels",
+			Name:        "find-series-by-labels",
 			Description: "Return the list of time series that match a certain label set.",
 		}, metadataQuerier.SeriesHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "List Label Names",
+			Name:        "list-label-names",
 			Description: "Return a list of label names.",
 		}, metadataQuerier.LabelNamesHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "List Label Values",
+			Name:        "list-label-values",
 			Description: "Return a list of label values for a provided label name.",
 		}, metadataQuerier.LabelValuesHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "Target Metadata Query",
+			Name:        "target-metadata-query",
 			Description: "Return metadata about metrics currently scraped from targets.",
 		}, metadataQuerier.TargetMetadataQueryHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "Metric Metadata Query",
+			Name:        "metric-metadata-query",
 			Description: "Return metadata about metrics currently scraped from targets. However, it does not provide any target information.",
 		}, metadataQuerier.MetricsMetadataQueryHandler)
 	}
@@ -66,7 +66,7 @@ func (b *binder) addTools() {
 	{
 		targetDiscoverer := targetdiscover.NewTargetDiscoverer(b.api)
 		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "Target Discovery",
+			Name:        "target-discovery",
 			Description: "Return an overview of the current state of the Prometheus target discovery.",
 		}, targetDiscoverer.TargetDiscoverHandler)
 	}
@@ -76,7 +76,7 @@ func (b *binder) addTools() {
 	{
 		ruleQuerier := rulequery.NewRuleQuerier(b.api)
 		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "Rule Query",
+			Name:        "rule-query",
 			Description: "Return a list of alerting and recording rules that are currently loaded. In addition it returns the currently active alerts fired by the Prometheus instance of each alerting rule.",
 		}, ruleQuerier.RuleQueryHandler)
 	}
@@ -86,7 +86,7 @@ func (b *binder) addTools() {
 	{
 		alertQuerier := alertquery.NewAlertQuerier(b.api)
 		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "Alert Query",
+			Name:        "alert-query",
 			Description: "Return a list of all active alerts.",
 		}, alertQuerier.AlertQueryHandler)
 	}
@@ -96,7 +96,7 @@ func (b *binder) addTools() {
 	{
 		alertmanagerDiscoverer := alertmanagerdiscover.NewAlertmanagerDiscoverer(b.api)
 		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "Alertmanager Discovery",
+			Name:        "alertmanager-discovery",
 			Description: "Return an overview of the current state of the Prometheus alertmanager discovery.",
 		}, alertmanagerDiscoverer.AlertmanagerDiscoverHandler)
 	}
@@ -116,22 +116,22 @@ func (b *binder) addTools() {
 		}, statusExposer.FlagsExposeHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "Runtime Information",
+			Name:        "runtime-information",
 			Description: "Return various runtime information properties about the Prometheus server.",
 		}, statusExposer.RuntimeInformationExposeHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "Build Information",
+			Name:        "build-information",
 			Description: "Return various build information properties about the Prometheus server.",
 		}, statusExposer.BuildInformationExposeHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "TSDB Stats",
+			Name:        "tsdb-stats",
 			Description: "Return various cardinality statistics about the Prometheus TSDB.",
 		}, statusExposer.TSDBStatsExposeHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "WAL Replay Stats",
+			Name:        "wal-replay-stats",
 			Description: "Return information about the WAL replay.",
 		}, statusExposer.WALReplayStatsExposeHandler)
 	}
@@ -141,17 +141,17 @@ func (b *binder) addTools() {
 	{
 		tsdbAdmin := tsdbadmin.NewTSDBAdmin(b.api)
 		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "TSDB Snapshot",
+			Name:        "tsdb-snapshot",
 			Description: "Create a snapshot of all current data into snapshots/<datetime>-<rand> under the TSDB's data directory and returns the directory as response. It will optionally skip snapshotting data that is only present in the head block, and which has not yet been compacted to disk.",
 		}, tsdbAdmin.SnapshotHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "Delete Series",
+			Name:        "delete-series",
 			Description: "Delete data for a selection of series in a time range. The actual data still exists on disk and is cleaned up in future compactions or can be explicitly cleaned up by hitting the Clean Tombstones endpoint. Not mentioning both start and end times would clear all the data for the matched series in the database.",
 		}, tsdbAdmin.DeleteSeriesHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "Clean Tombstones",
+			Name:        "clean-tombstones",
 			Description: "Remove the deleted data from disk and cleans up the existing tombstones. This can be used after deleting series to free up space.",
 		}, tsdbAdmin.CleanTombstonesHandler)
 	}
@@ -161,12 +161,12 @@ func (b *binder) addTools() {
 	{
 		manager := manage.NewManager(b.api)
 		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "Health Check",
+			Name:        "health-check",
 			Description: "Check Prometheus health.",
 		}, manager.HealthCheckHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "Readiness Check",
+			Name:        "readiness-check",
 			Description: "Check if Prometheus is ready to serve traffic (i.e. respond to queries).",
 		}, manager.ReadinessCheckHandler)
 

@@ -32,9 +32,9 @@
 
 - **🔥 Golang Implementation**: Built with Go 1.23+ for performance, reliability, and type safety
 - **📊 Complete Prometheus API Coverage**: Full compatibility with Prometheus HTTP API v1
-- **⚡ Instant Query**: Execute Prometheus queries at a specific point in time
-- **📈 Range Query**: Retrieve historical metric data over defined time ranges
-- **🔍 Metadata Query**: Discover time series, label names, and label values
+- **⚡ instant-query**: Execute Prometheus queries at a specific point in time
+- **📈 range-query**: Retrieve historical metric data over defined time ranges
+- **🔍 Metadata Queries**: Discover time series, label names, and label values
 - **🎯 Target & Rule Management**: Monitor targets, rules, and alerting configurations
 - **🛠️ TSDB Administration**: Advanced database operations including snapshots and series deletion
 - **🌐 Multiple Transport Options**: Support for HTTP, Server-Sent Events (SSE), and stdio
@@ -159,55 +159,55 @@ prometheus-mcp-server --prom-addr="http://localhost:9090" --transport=sse --mcp-
 
 | Tool          | Prometheus Endpoint   | HTTP Method | Purpose                 |
 | ------------- | --------------------- | ----------- | ----------------------- |
-| Instant Query | `/api/v1/query`       | GET/POST    | Execute instant queries |
-| Range Query   | `/api/v1/query_range` | GET/POST    | Execute range queries   |
+| instant-query | `/api/v1/query`       | GET/POST    | Execute instant queries |
+| range-query   | `/api/v1/query_range` | GET/POST    | Execute range queries   |
 
 ### Metadata & Discovery
 
 | Tool                  | Prometheus Endpoint          | HTTP Method | Purpose                          |
 | --------------------- | ---------------------------- | ----------- | -------------------------------- |
-| Find Series by Labels | `/api/v1/series`             | GET/POST    | Find matching time series        |
-| List Label Names      | `/api/v1/labels`             | GET/POST    | List all label names             |
-| List Label Values     | `/api/v1/label/:name/values` | GET         | List values for a specific label |
-| Target Discovery      | `/api/v1/targets`            | GET         | Get target information           |
-| Target Metadata Query | `/api/v1/targets/metadata`   | GET         | Get metadata from targets        |
-| Metric Metadata Query | `/api/v1/metadata`           | GET         | Get metric metadata              |
+| find-series-by-labels | `/api/v1/series`             | GET/POST    | Find matching time series        |
+| list-label-names      | `/api/v1/labels`             | GET/POST    | List all label names             |
+| list-label-values     | `/api/v1/label/:name/values` | GET         | List values for a specific label |
+| target-discovery      | `/api/v1/targets`            | GET         | Get target information           |
+| target-metadata-query | `/api/v1/targets/metadata`   | GET         | Get metadata from targets        |
+| metric-metadata-query | `/api/v1/metadata`           | GET         | Get metric metadata              |
 
 ### Rules & Alerts
 
 | Tool                   | Prometheus Endpoint     | HTTP Method | Purpose                      |
 | ---------------------- | ----------------------- | ----------- | ---------------------------- |
-| Alert Query            | `/api/v1/alerts`        | GET         | Get all active alerts        |
-| Rule Query             | `/api/v1/rules`         | GET         | Get recording/alerting rules |
-| Alertmanager Discovery | `/api/v1/alertmanagers` | GET         | Get alertmanager information |
+| alert-query            | `/api/v1/alerts`        | GET         | Get all active alerts        |
+| rule-query             | `/api/v1/rules`         | GET         | Get recording/alerting rules |
+| alertmanager-discovery | `/api/v1/alertmanagers` | GET         | Get alertmanager information |
 
 ### Status & Configuration
 
 | Tool                | Prometheus Endpoint          | HTTP Method | Purpose                   |
 | ------------------- | ---------------------------- | ----------- | ------------------------- |
-| Config              | `/api/v1/status/config`      | GET         | Get current configuration |
-| Flags               | `/api/v1/status/flags`       | GET         | Get runtime flags         |
-| Build Information   | `/api/v1/status/buildinfo`   | GET         | Get build information     |
-| Runtime Information | `/api/v1/status/runtimeinfo` | GET         | Get runtime information   |
-| TSDB Stats          | `/api/v1/status/tsdb`        | GET         | Get TSDB statistics       |
-| WAL Replay Stats    | `/api/v1/status/walreplay`   | GET         | Get WAL replay status     |
+| config              | `/api/v1/status/config`      | GET         | Get current configuration |
+| flags               | `/api/v1/status/flags`       | GET         | Get runtime flags         |
+| build-information   | `/api/v1/status/buildinfo`   | GET         | Get build information     |
+| runtime-information | `/api/v1/status/runtimeinfo` | GET         | Get runtime information   |
+| tsdb-stats          | `/api/v1/status/tsdb`        | GET         | Get TSDB statistics       |
+| wal-replay-stats    | `/api/v1/status/walreplay`   | GET         | Get WAL replay status     |
 
 ### TSDB Administration
 
 | Tool             | Prometheus Endpoint                   | HTTP Method | Purpose                 |
 | ---------------- | ------------------------------------- | ----------- | ----------------------- |
-| TSDB Snapshot    | `/api/v1/admin/tsdb/snapshot`         | POST/PUT    | Create TSDB snapshot    |
-| Delete Series    | `/api/v1/admin/tsdb/delete_series`    | POST/PUT    | Delete time series data |
-| Clean Tombstones | `/api/v1/admin/tsdb/clean_tombstones` | POST/PUT    | Clean deleted data      |
+| tsdb-snapshot    | `/api/v1/admin/tsdb/snapshot`         | POST/PUT    | Create TSDB snapshot    |
+| delete-series    | `/api/v1/admin/tsdb/delete_series`    | POST/PUT    | Delete time series data |
+| clean-tombstones | `/api/v1/admin/tsdb/clean_tombstones` | POST/PUT    | Clean deleted data      |
 
 ### Management APIs
 
 | Tool            | Prometheus Endpoint | HTTP Method | Purpose                 |
 | --------------- | ------------------- | ----------- | ----------------------- |
-| Health Check    | `/-/healthy`        | GET/HEAD    | Check Prometheus health |
-| Readiness Check | `/-/ready`          | GET/HEAD    | Check if ready to serve |
-| Reload          | `/-/reload`         | PUT/POST    | Reload configuration    |
-| Quit            | `/-/quit`           | PUT/POST    | Graceful shutdown       |
+| health-check    | `/-/healthy`        | GET/HEAD    | Check Prometheus health |
+| readiness-check | `/-/ready`          | GET/HEAD    | Check if ready to serve |
+| reload          | `/-/reload`         | PUT/POST    | Reload configuration    |
+| quit            | `/-/quit`           | PUT/POST    | Graceful shutdown       |
 
 **All query parameters, response formats, and error codes match the official Prometheus API specification.**
 
@@ -219,49 +219,49 @@ prometheus-mcp-server --prom-addr="http://localhost:9090" --transport=sse --mcp-
 
 **Expression Queries** (Core Prometheus functionality):
 
-- **Instant Query**: Evaluate an instant query at a single point in time
-- **Range Query**: Evaluate an expression query over a range of time
+- **instant-query**: Evaluate an instant query at a single point in time
+- **range-query**: Evaluate an expression query over a range of time
 
 **Metadata Queries** (Series and label discovery):
 
-- **Find Series by Labels**: Return the list of time series that match a certain label set
-- **List Label Names**: Return a list of label names
-- **List Label Values**: Return a list of label values for a provided label name
-- **Target Metadata Query**: Return metadata about metrics currently scraped from targets
-- **Metric Metadata Query**: Return metadata about metrics currently scraped from targets (without target information)
+- **find-series-by-labels**: Return the list of time series that match a certain label set
+- **list-label-names**: Return a list of label names
+- **list-label-values**: Return a list of label values for a provided label name
+- **target-metadata-query**: Return metadata about metrics currently scraped from targets
+- **metric-metadata-query**: Return metadata about metrics currently scraped from targets (without target information)
 
 **Discovery & Monitoring**:
 
-- **Target Discovery**: Return an overview of the current state of the Prometheus target discovery
-- **Alert Query**: Return a list of all active alerts
-- **Rule Query**: Return a list of alerting and recording rules that are currently loaded
-- **Alertmanager Discovery**: Return an overview of the current state of the Prometheus alertmanager discovery
+- **target-discovery**: Return an overview of the current state of the Prometheus target discovery
+- **alert-query**: Return a list of all active alerts
+- **rule-query**: Return a list of alerting and recording rules that are currently loaded
+- **alertmanager-discovery**: Return an overview of the current state of the Prometheus alertmanager discovery
 
 **Status & Configuration**:
 
-- **Config**: Return currently loaded configuration file
-- **Flags**: Return flag values that Prometheus was configured with
-- **Runtime Information**: Return various runtime information properties about the Prometheus server
-- **Build Information**: Return various build information properties about the Prometheus server
-- **TSDB Stats**: Return various cardinality statistics about the Prometheus TSDB
-- **WAL Replay Stats**: Return information about the WAL replay
+- **config**: Return currently loaded configuration file
+- **flags**: Return flag values that Prometheus was configured with
+- **runtime-information**: Return various runtime information properties about the Prometheus server
+- **build-information**: Return various build information properties about the Prometheus server
+- **tsdb-stats**: Return various cardinality statistics about the Prometheus TSDB
+- **wal-replay-stats**: Return information about the WAL replay
 
 **TSDB Admin APIs** (Advanced operations):
 
-- **TSDB Snapshot**: Create a snapshot of all current data into snapshots/`<datetime>`-`<rand>`
-- **Delete Series**: Delete data for a selection of series in a time range
-- **Clean Tombstones**: Remove the deleted data from disk and cleans up the existing tombstones
+- **tsdb-snapshot**: Create a snapshot of all current data into snapshots/`<datetime>`-`<rand>`
+- **delete-series**: Delete data for a selection of series in a time range
+- **clean-tombstones**: Remove the deleted data from disk and cleans up the existing tombstones
 
 **Management APIs**:
 
-- **Health Check**: Check Prometheus health
-- **Readiness Check**: Check if Prometheus is ready to serve traffic (i.e. respond to queries)
-- **Reload**: Trigger a reload of the Prometheus configuration and rule files
-- **Quit**: Trigger a graceful shutdown of Prometheus
+- **health-check**: Check Prometheus health
+- **readiness-check**: Check if Prometheus is ready to serve traffic (i.e. respond to queries)
+- **reload**: Trigger a reload of the Prometheus configuration and rule files
+- **quit**: Trigger a graceful shutdown of Prometheus
 
 ### Prompts
 
-- **All Available Metrics**: Return a list of every metric exposed by the Prometheus instance
+- **all-available-metrics**: Return a list of every metric exposed by the Prometheus instance
 
 ---
 
