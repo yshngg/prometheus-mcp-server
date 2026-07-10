@@ -8,7 +8,7 @@ import (
 
 func (b *binder) addPrompts() {
 	b.server.AddPrompt(&mcp.Prompt{
-		Name:        "All Available Metrics",
+		Name:        "all-available-metrics",
 		Description: "List all available metrics in the Prometheus instance.",
 	}, func(ctx context.Context, _ *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 		return &mcp.GetPromptResult{
