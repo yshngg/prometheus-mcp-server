@@ -33,7 +33,39 @@ prometheus-mcp-server --prom-addr="http://localhost:9090"
 
 ## MCP Client Configuration
 
-### Claude Desktop
+Add the following config to your MCP client:
+
+```json
+{
+  "mcpServers": {
+    "prometheus": {
+      "command": "prometheus-mcp-server",
+      "args": ["--prom-addr", "http://localhost:9090"]
+    }
+  }
+}
+```
+
+> [!NOTE]
+> Install the binary via `go install github.com/yshngg/prometheus-mcp-server@latest` or pull the Docker image with `docker pull ghcr.io/yshngg/prometheus-mcp-server:latest`.
+
+If you don't have the binary installed, use Docker:
+
+```json
+{
+  "mcpServers": {
+    "prometheus": {
+      "command": "docker",
+      "args": ["run", "--rm", "-i", "ghcr.io/yshngg/prometheus-mcp-server:latest", "--prom-addr", "http://host.docker.internal:9090"]
+    }
+  }
+}
+```
+
+### Client-specific configuration
+
+<details>
+  <summary>Claude Desktop</summary>
 
 Add to `claude_desktop_config.json`:
 
@@ -61,7 +93,10 @@ With Docker:
 }
 ```
 
-### VS Code / Copilot
+</details>
+
+<details>
+  <summary>VS Code / Copilot</summary>
 
 Add to MCP settings (`~/.vscode/mcp.json` or Settings → MCP):
 
@@ -76,26 +111,53 @@ Add to MCP settings (`~/.vscode/mcp.json` or Settings → MCP):
 }
 ```
 
-### Cline / Cursor / Any MCP Client
+</details>
+
+<details>
+  <summary>Cline</summary>
+
+Follow the <a href="https://docs.cline.bot/mcp/configuring-mcp-servers">Cline MCP guide</a> and use the standard config above.
+
+</details>
+
+<details>
+  <summary>Cursor</summary>
+
+Go to `Cursor Settings` → `MCP` → `New MCP Server`. Use the standard config above.
+
+</details>
+
+<details>
+  <summary>OpenCode</summary>
+
+Add to `opencode.json` (<a href="https://opencode.ai/docs/mcp-servers">guide</a>):
 
 ```json
 {
-  "mcpServers": {
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
     "prometheus": {
-      "command": "prometheus-mcp-server",
-      "args": ["--prom-addr", "http://localhost:9090"]
+      "type": "local",
+      "command": ["prometheus-mcp-server", "--prom-addr", "http://localhost:9090"]
     }
   }
 }
 ```
 
-### HTTP Transport
+</details>
 
-Run with HTTP transport and point your client to `http://localhost:8080/mcp`:
+<details>
+  <summary>HTTP Transport</summary>
+
+Run the server with HTTP transport:
 
 ```bash
 prometheus-mcp-server --transport=http --mcp-addr="localhost:8080"
 ```
+
+Then configure your client to use `http://localhost:8080/mcp`.
+
+</details>
 
 ## Tools
 
