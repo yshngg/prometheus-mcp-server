@@ -28,7 +28,7 @@ prometheus-mcp-server --prom-addr="http://localhost:9090"
 |------|---------|-------------|
 | `-prom-addr` | `http://localhost:9090` | Prometheus server URL |
 | `-mcp-addr` | `localhost:8080` | MCP server listen address |
-| `-transport` | `stdio` | `stdio`, `http`, or `sse` |
+| `-transport` | `stdio` | `stdio` or `http` |
 | `-auth-token` | `` | Bearer token for MCP endpoint authentication (optional) |
 | `-version` | | Print version |
 
@@ -129,6 +129,13 @@ prometheus-mcp-server --transport=http --mcp-addr="localhost:8080"
 ```
 
 Then configure your client to use `http://localhost:8080/mcp`.
+
+For authenticated access, set `AUTH_TOKEN`:
+```bash
+AUTH_TOKEN=my-token prometheus-mcp-server --transport=http
+```
+
+Your client must then include `Authorization: Bearer my-token` in requests to `/mcp`.
 
 </details>
 
