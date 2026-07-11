@@ -22,11 +22,6 @@ import (
 
 const Schema = "prom"
 
-var (
-	mcpRequests = expvar.NewInt("mcp_requests_total")
-	mcpErrors   = expvar.NewInt("mcp_errors_total")
-)
-
 func envOrDefault(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
