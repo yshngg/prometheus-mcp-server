@@ -84,7 +84,7 @@ func metricsMiddleware(next mcp.MethodHandler) mcp.MethodHandler {
 
 		toolName := ""
 		if req != nil {
-			if callReq, ok := req.GetParams().(*mcp.CallToolParams); ok {
+			if callReq, ok := req.GetParams().(*mcp.CallToolParamsRaw); ok {
 				toolName = callReq.Name
 			}
 		}
