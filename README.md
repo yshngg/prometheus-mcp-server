@@ -29,9 +29,9 @@ prometheus-mcp-server --prom-addr="http://localhost:9090"
 | `-prom-addr` | `http://localhost:9090` | Prometheus server URL |
 | `-mcp-addr` | `localhost:8080` | MCP server listen address |
 | `-transport` | `stdio` | `stdio`, `http`, or `sse` |
-| `-version` | | Print version |
+ | `-version` | | Print version |
 
-## MCP Client Configuration
+### MCP Client Configuration
 
 Add the following config to your MCP client:
 
