@@ -191,11 +191,10 @@ func (b *binder) addResourceTemplates() {
 		MIMEType:    "application/json",
 	}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
 		uri := req.Params.URI
-		parts := strings.Split(strings.TrimPrefix(uri, "prom:///api/v1/label/"), "/values")
-		if len(parts) != 1 || parts[0] == "" {
+		labelName := strings.TrimSuffix(strings.TrimPrefix(uri, "prom:///api/v1/label/"), "/values")
+		if labelName == "" {
 			return nil, fmt.Errorf("invalid resource URI: %s", uri)
 		}
-		labelName := parts[0]
 
 		values, warnings, err := b.api.LabelValues(ctx, labelName, nil, time.Time{}, time.Time{})
 		if err != nil {

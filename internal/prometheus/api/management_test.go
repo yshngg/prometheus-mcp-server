@@ -132,6 +132,36 @@ func TestManagementAPI_Quit_Success(t *testing.T) {
 	}
 }
 
+func TestManagementAPI_ReadinessCheck_ConnError(t *testing.T) {
+	m, err := newManagementClient("http://127.0.0.1:1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := m.ReadinessCheck(context.Background()); err == nil {
+		t.Fatal("expected error for connection failure")
+	}
+}
+
+func TestManagementAPI_Reload_ConnError(t *testing.T) {
+	m, err := newManagementClient("http://127.0.0.1:1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := m.Reload(context.Background()); err == nil {
+		t.Fatal("expected error for connection failure")
+	}
+}
+
+func TestManagementAPI_Quit_ConnError(t *testing.T) {
+	m, err := newManagementClient("http://127.0.0.1:1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := m.Quit(context.Background()); err == nil {
+		t.Fatal("expected error for connection failure")
+	}
+}
+
 func TestManagementAPI_Quit_NotOK(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)

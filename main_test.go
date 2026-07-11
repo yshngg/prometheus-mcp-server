@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -31,6 +32,19 @@ func TestUsageFor(t *testing.T) {
 	// but we can verify it doesn't panic and captures correctly
 	_ = buf
 	_ = usage
+}
+
+func TestUsageFor_WithVersion(t *testing.T) {
+	fs := flag.NewFlagSet("test", flag.PanicOnError)
+	fs.String("test-flag", "default", "a test flag")
+
+	capture := captureStderr(t, func() {
+		usageFor(fs, "test [flags]")()
+	})
+
+	if !strings.Contains(capture, "VERSION") {
+		t.Fatal("expected output to contain version")
+	}
 }
 
 func TestUsageForOutput(t *testing.T) {
@@ -70,6 +84,28 @@ func TestMetricsMiddleware_Success(t *testing.T) {
 	}
 	if !called {
 		t.Fatal("expected inner handler to be called")
+	}
+}
+
+func TestMetricsMiddleware_WithRequest(t *testing.T) {
+	mw := metricsMiddleware(func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		return nil, nil
+	})
+	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Name: "instant-query"}}
+	_, err := mw(context.Background(), methodCallTool, req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestMetricsMiddleware_WithRequestError(t *testing.T) {
+	mw := metricsMiddleware(func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		return nil, errors.New("handler error")
+	})
+	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Name: "instant-query"}}
+	_, err := mw(context.Background(), methodCallTool, req)
+	if err == nil {
+		t.Fatal("expected error")
 	}
 }
 
@@ -350,6 +386,50 @@ func TestHandleCompletion_PromptMetricNames(t *testing.T) {
 	}
 }
 
+func TestHandleCompletion_APIError(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{
+		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
+			return nil, nil, errors.New("api error")
+		},
+	}
+	req := &mcp.CompleteRequest{
+		Params: &mcp.CompleteParams{
+			Ref: &mcp.CompleteReference{
+				Type: "ref/resource",
+				URI:  "prom:///api/v1/label/{name}/values",
+			},
+			Argument: mcp.CompleteParamsArgument{Name: "name", Value: "j"},
+		},
+	}
+
+	_, err := handleCompletion(context.Background(), req, mock)
+	if err == nil {
+		t.Fatal("expected error from API failure")
+	}
+}
+
+func TestHandleCompletion_APIErrorQuery(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{
+		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
+			return nil, nil, errors.New("api error")
+		},
+	}
+	req := &mcp.CompleteRequest{
+		Params: &mcp.CompleteParams{
+			Ref: &mcp.CompleteReference{
+				Type: "ref/resource",
+				URI:  "prom:///api/v1/query?query={promql}",
+			},
+			Argument: mcp.CompleteParamsArgument{Name: "promql", Value: "up"},
+		},
+	}
+
+	_, err := handleCompletion(context.Background(), req, mock)
+	if err == nil {
+		t.Fatal("expected error from API failure")
+	}
+}
+
 func TestHandleCompletion_UnknownResource(t *testing.T) {
 	mock := &mockapi.PrometheusAPI{}
 	req := &mcp.CompleteRequest{
@@ -371,6 +451,184 @@ func TestHandleCompletion_UnknownResource(t *testing.T) {
 	}
 	if len(result.Completion.Values) != 0 {
 		t.Fatalf("expected empty values, got %v", result.Completion.Values)
+	}
+}
+
+func TestCacheHintMiddleware_SetsTTL(t *testing.T) {
+	tests := []struct {
+		name    string
+		result  mcp.Result
+	}{
+		{"ListToolsResult", &mcp.ListToolsResult{}},
+		{"ListPromptsResult", &mcp.ListPromptsResult{}},
+		{"ListResourcesResult", &mcp.ListResourcesResult{}},
+		{"ListResourceTemplatesResult", &mcp.ListResourceTemplatesResult{}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mw := cacheHintMiddleware(func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+				return tt.result, nil
+			})
+			res, err := mw(context.Background(), "test", nil)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			switch r := res.(type) {
+			case *mcp.ListToolsResult:
+				if r.TTLMs != 30000 || r.CacheScope != "public" {
+					t.Fatalf("expected TTLMs=30000, CacheScope=public, got TTLMs=%d, CacheScope=%s", r.TTLMs, r.CacheScope)
+				}
+			case *mcp.ListPromptsResult:
+				if r.TTLMs != 30000 || r.CacheScope != "public" {
+					t.Fatalf("expected TTLMs=30000, CacheScope=public, got TTLMs=%d, CacheScope=%s", r.TTLMs, r.CacheScope)
+				}
+			case *mcp.ListResourcesResult:
+				if r.TTLMs != 30000 || r.CacheScope != "public" {
+					t.Fatalf("expected TTLMs=30000, CacheScope=public, got TTLMs=%d, CacheScope=%s", r.TTLMs, r.CacheScope)
+				}
+			case *mcp.ListResourceTemplatesResult:
+				if r.TTLMs != 30000 || r.CacheScope != "public" {
+					t.Fatalf("expected TTLMs=30000, CacheScope=public, got TTLMs=%d, CacheScope=%s", r.TTLMs, r.CacheScope)
+				}
+			default:
+				t.Fatalf("unexpected result type: %T", res)
+			}
+		})
+	}
+}
+
+func TestCacheHintMiddleware_ErrorPassthrough(t *testing.T) {
+	mw := cacheHintMiddleware(func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		return nil, errors.New("handler error")
+	})
+	_, err := mw(context.Background(), "test", nil)
+	if err == nil {
+		t.Fatal("expected error to pass through")
+	}
+}
+
+func TestCacheHintMiddleware_NonListResult(t *testing.T) {
+	mw := cacheHintMiddleware(func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		return &mcp.CallToolResult{}, nil
+	})
+	res, err := mw(context.Background(), "test", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, ok := res.(*mcp.CallToolResult); !ok {
+		t.Fatal("expected CallToolResult unchanged")
+	}
+}
+
+func TestDestructiveToolMiddleware_NonToolMethod(t *testing.T) {
+	called := false
+	mw := destructiveToolMiddleware(func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		called = true
+		return nil, nil
+	})
+	_, err := mw(context.Background(), "ping", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !called {
+		t.Fatal("expected handler to be called for non-tool method")
+	}
+}
+
+func TestDestructiveToolMiddleware_NonDestructiveTool(t *testing.T) {
+	called := false
+	mw := destructiveToolMiddleware(func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		called = true
+		return nil, nil
+	})
+	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Name: "instant-query"}}
+	_, err := mw(context.Background(), methodCallTool, req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !called {
+		t.Fatal("expected handler to be called for non-destructive tool")
+	}
+}
+
+func TestDestructiveToolMiddleware_NilSession(t *testing.T) {
+	called := false
+	mw := destructiveToolMiddleware(func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		called = true
+		return nil, nil
+	})
+	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Name: "delete-series"}}
+	_, err := mw(context.Background(), methodCallTool, req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !called {
+		t.Fatal("expected handler to be called when session is nil")
+	}
+}
+
+func TestRunStdio_CancelledContext(t *testing.T) {
+	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	err := server.Run(ctx, &mcp.StdioTransport{})
+	if err == nil {
+		t.Fatal("expected error from cancelled context")
+	}
+}
+
+func TestMainVersionFlag(t *testing.T) {
+	if os.Getenv("GO_UNDER_TEST") == "1" {
+		os.Args = []string{"prometheus-mcp-server", "-version"}
+		main()
+		return
+	}
+
+	cmd := exec.Command(os.Args[0], "-test.v", "-test.run", "^TestMainVersionFlag$")
+	cmd.Env = append(os.Environ(), "GO_UNDER_TEST=1")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("expected success, got %v: %s", err, string(out))
+	}
+}
+
+func TestDestructiveToolMiddleware_ElicitConfirmed(t *testing.T) {
+	server := mcp.NewServer(&mcp.Implementation{Name: "server", Version: "1.0"}, nil)
+	server.AddReceivingMiddleware(destructiveToolMiddleware)
+	var handlerCalled bool
+	mcp.AddTool(server, &mcp.Tool{Name: "delete-series"}, func(ctx context.Context, req *mcp.CallToolRequest, _ any) (*mcp.CallToolResult, any, error) {
+		handlerCalled = true
+		return &mcp.CallToolResult{}, nil, nil
+	})
+
+	client := mcp.NewClient(&mcp.Implementation{Name: "client", Version: "1.0"}, &mcp.ClientOptions{
+		ElicitationHandler: func(ctx context.Context, req *mcp.ElicitRequest) (*mcp.ElicitResult, error) {
+			return &mcp.ElicitResult{Action: "accept", Content: map[string]any{"confirm": true}}, nil
+		},
+	})
+
+	ctx := context.Background()
+	st, ct := mcp.NewInMemoryTransports()
+	ss, err := server.Connect(ctx, st, nil)
+	if err != nil {
+		t.Fatalf("server connect: %v", err)
+	}
+	defer ss.Close()
+
+	cs, err := client.Connect(ctx, ct, nil)
+	if err != nil {
+		t.Fatalf("client connect: %v", err)
+	}
+	defer cs.Close()
+
+	_, err = cs.CallTool(ctx, &mcp.CallToolParams{Name: "delete-series"})
+	if err != nil {
+		t.Fatalf("call tool: %v", err)
+	}
+	if !handlerCalled {
+		t.Fatal("expected handler to be called after elicitation confirmed")
 	}
 }
 

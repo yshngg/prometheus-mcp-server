@@ -19,6 +19,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/yshngg/prometheus-mcp-server/internal/bindingblocks"
 	"github.com/yshngg/prometheus-mcp-server/internal/prometheus/api"
+	"github.com/yshngg/prometheus-mcp-server/internal/utils"
 	"github.com/yshngg/prometheus-mcp-server/internal/version"
 	"k8s.io/klog/v2"
 )
@@ -100,6 +101,47 @@ func metricsMiddleware(next mcp.MethodHandler) mcp.MethodHandler {
 	}
 }
 
+var destructiveTools = map[string]bool{
+	"delete-series":    true,
+	"clean-tombstones": true,
+	"reload":           true,
+	"quit":             true,
+}
+
+func destructiveToolMiddleware(next mcp.MethodHandler) mcp.MethodHandler {
+	return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		if method != methodCallTool {
+			return next(ctx, method, req)
+		}
+
+		params, ok := req.GetParams().(*mcp.CallToolParamsRaw)
+		if !ok || !destructiveTools[params.Name] {
+			return next(ctx, method, req)
+		}
+
+		session := req.GetSession()
+		serverSession, ok := session.(*mcp.ServerSession)
+		if !ok || serverSession == nil {
+			return next(ctx, method, req)
+		}
+
+		confirmed, err := utils.ConfirmDestructive(ctx, serverSession, params.Name,
+			fmt.Sprintf("Confirm %q operation", params.Name))
+		if err != nil {
+			return next(ctx, method, req)
+		}
+		if !confirmed {
+			return &mcp.CallToolResult{
+				IsError: true,
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Operation %q cancelled by user", params.Name)},
+				},
+			}, nil
+		}
+		return next(ctx, method, req)
+	}
+}
+
 func envOrDefault(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
@@ -171,6 +213,7 @@ func main() {
 		},
 	})
 	server.AddReceivingMiddleware(metricsMiddleware)
+	server.AddReceivingMiddleware(destructiveToolMiddleware)
 	server.AddSendingMiddleware(cacheHintMiddleware)
 
 	binder := bindingblocks.NewBinder(server, promCli)

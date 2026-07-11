@@ -187,6 +187,57 @@ func TestWALReplayStatsExposeHandler_APIError(t *testing.T) {
 	}
 }
 
+func TestFlagsExposeHandler_Cache(t *testing.T) {
+	calls := 0
+	mock := &mockapi.PrometheusAPI{
+		FlagsFunc: func(ctx context.Context) (v1.FlagsResult, error) {
+			calls++
+			return v1.FlagsResult{"flag": "val"}, nil
+		},
+	}
+	e := NewStatusExposer(mock)
+
+	_, _, _ = e.FlagsExposeHandler(context.Background(), nil, &FlagsExposeParams{})
+	_, _, _ = e.FlagsExposeHandler(context.Background(), nil, &FlagsExposeParams{})
+	if calls != 1 {
+		t.Fatalf("expected 1 API call (cached), got %d", calls)
+	}
+}
+
+func TestBuildInformationExposeHandler_Cache(t *testing.T) {
+	calls := 0
+	mock := &mockapi.PrometheusAPI{
+		BuildinfoFunc: func(ctx context.Context) (v1.BuildinfoResult, error) {
+			calls++
+			return v1.BuildinfoResult{Version: "2.45.0"}, nil
+		},
+	}
+	e := NewStatusExposer(mock)
+
+	_, _, _ = e.BuildInformationExposeHandler(context.Background(), nil, &BuildInformationExposeParams{})
+	_, _, _ = e.BuildInformationExposeHandler(context.Background(), nil, &BuildInformationExposeParams{})
+	if calls != 1 {
+		t.Fatalf("expected 1 API call (cached), got %d", calls)
+	}
+}
+
+func TestRuntimeInformationExposeHandler_Cache(t *testing.T) {
+	calls := 0
+	mock := &mockapi.PrometheusAPI{
+		RuntimeinfoFunc: func(ctx context.Context) (v1.RuntimeinfoResult, error) {
+			calls++
+			return v1.RuntimeinfoResult{CWD: "/prometheus"}, nil
+		},
+	}
+	e := NewStatusExposer(mock)
+
+	_, _, _ = e.RuntimeInformationExposeHandler(context.Background(), nil, &RuntimeInformationExposeParams{})
+	_, _, _ = e.RuntimeInformationExposeHandler(context.Background(), nil, &RuntimeInformationExposeParams{})
+	if calls != 1 {
+		t.Fatalf("expected 1 API call (cached), got %d", calls)
+	}
+}
+
 func TestConfigExposeHandler_Cache(t *testing.T) {
 	calls := 0
 	mock := &mockapi.PrometheusAPI{
