@@ -31,6 +31,72 @@ prometheus-mcp-server --prom-addr="http://localhost:9090"
 | `-transport` | `stdio` | `stdio`, `http`, or `sse` |
 | `-version` | | Print version |
 
+## MCP Client Configuration
+
+### Claude Desktop
+
+Add to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "prometheus": {
+      "command": "prometheus-mcp-server",
+      "args": ["--prom-addr", "http://localhost:9090"]
+    }
+  }
+}
+```
+
+With Docker:
+
+```json
+{
+  "mcpServers": {
+    "prometheus": {
+      "command": "docker",
+      "args": ["run", "--rm", "-i", "ghcr.io/yshngg/prometheus-mcp-server:latest", "--prom-addr", "http://host.docker.internal:9090"]
+    }
+  }
+}
+```
+
+### VS Code / Copilot
+
+Add to MCP settings (`~/.vscode/mcp.json` or Settings → MCP):
+
+```json
+{
+  "servers": {
+    "prometheus": {
+      "command": "prometheus-mcp-server",
+      "args": ["--prom-addr", "http://localhost:9090"]
+    }
+  }
+}
+```
+
+### Cline / Cursor / Any MCP Client
+
+```json
+{
+  "mcpServers": {
+    "prometheus": {
+      "command": "prometheus-mcp-server",
+      "args": ["--prom-addr", "http://localhost:9090"]
+    }
+  }
+}
+```
+
+### HTTP Transport
+
+Run with HTTP transport and point your client to `http://localhost:8080/mcp`:
+
+```bash
+prometheus-mcp-server --transport=http --mcp-addr="localhost:8080"
+```
+
 ## Tools
 
 **Expression:** `instant-query`, `range-query`
