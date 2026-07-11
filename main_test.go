@@ -10,8 +10,11 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
 	"github.com/yshngg/prometheus-mcp-server/internal/mockapi"
 )
 
@@ -144,6 +147,230 @@ func TestReadyzHandler_Unhealthy(t *testing.T) {
 	readyzHandler(mock)(w, r)
 	if w.Code != http.StatusServiceUnavailable {
 		t.Fatalf("expected 503, got %d", w.Code)
+	}
+}
+
+func TestAuthMiddleware_NoToken(t *testing.T) {
+	mw := authMiddleware("")
+	innerCalled := false
+	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		innerCalled = true
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/mcp", nil)
+	handler.ServeHTTP(w, r)
+
+	if !innerCalled {
+		t.Fatal("expected inner handler to be called when no auth token configured")
+	}
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
+
+func TestAuthMiddleware_ValidToken(t *testing.T) {
+	mw := authMiddleware("valid-token")
+	innerCalled := false
+	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		innerCalled = true
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/mcp", nil)
+	r.Header.Set("Authorization", "Bearer valid-token")
+	handler.ServeHTTP(w, r)
+
+	if !innerCalled {
+		t.Fatal("expected inner handler to be called with valid token")
+	}
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
+
+func TestAuthMiddleware_InvalidToken(t *testing.T) {
+	mw := authMiddleware("valid-token")
+	innerCalled := false
+	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		innerCalled = true
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/mcp", nil)
+	r.Header.Set("Authorization", "Bearer wrong-token")
+	handler.ServeHTTP(w, r)
+
+	if innerCalled {
+		t.Fatal("expected inner handler NOT to be called with invalid token")
+	}
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", w.Code)
+	}
+}
+
+func TestAuthMiddleware_MissingToken(t *testing.T) {
+	mw := authMiddleware("valid-token")
+	innerCalled := false
+	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		innerCalled = true
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/mcp", nil)
+	handler.ServeHTTP(w, r)
+
+	if innerCalled {
+		t.Fatal("expected inner handler NOT to be called with missing token")
+	}
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", w.Code)
+	}
+}
+
+func TestHandleCompletion_ResourceLabelValues(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{
+		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
+			return []string{"__name__", "job", "instance", "namespace"}, nil, nil
+		},
+	}
+	req := &mcp.CompleteRequest{
+		Params: &mcp.CompleteParams{
+			Ref: &mcp.CompleteReference{
+				Type: "ref/resource",
+				URI:  "prom:///api/v1/label/{name}/values",
+			},
+			Argument: mcp.CompleteParamsArgument{
+				Name:  "name",
+				Value: "ins",
+			},
+		},
+	}
+
+	result, err := handleCompletion(context.Background(), req, mock)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Completion.Values) != 1 || result.Completion.Values[0] != "instance" {
+		t.Fatalf("expected [instance], got %v", result.Completion.Values)
+	}
+}
+
+func TestHandleCompletion_ResourceLabelValuesEmptyPrefix(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{
+		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
+			return []string{"__name__", "job", "instance"}, nil, nil
+		},
+	}
+	req := &mcp.CompleteRequest{
+		Params: &mcp.CompleteParams{
+			Ref: &mcp.CompleteReference{
+				Type: "ref/resource",
+				URI:  "prom:///api/v1/label/{name}/values",
+			},
+			Argument: mcp.CompleteParamsArgument{
+				Name:  "name",
+				Value: "",
+			},
+		},
+	}
+
+	result, err := handleCompletion(context.Background(), req, mock)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Completion.Values) != 3 {
+		t.Fatalf("expected 3 values, got %d", len(result.Completion.Values))
+	}
+}
+
+func TestHandleCompletion_ResourceQueryMetricNames(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{
+		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
+			if label == "__name__" {
+				return model.LabelValues{"up", "node_cpu_seconds_total", "http_requests_total"}, nil, nil
+			}
+			return nil, nil, nil
+		},
+	}
+	req := &mcp.CompleteRequest{
+		Params: &mcp.CompleteParams{
+			Ref: &mcp.CompleteReference{
+				Type: "ref/resource",
+				URI:  "prom:///api/v1/query?query={promql}",
+			},
+			Argument: mcp.CompleteParamsArgument{
+				Name:  "promql",
+				Value: "node",
+			},
+		},
+	}
+
+	result, err := handleCompletion(context.Background(), req, mock)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Completion.Values) != 1 || result.Completion.Values[0] != "node_cpu_seconds_total" {
+		t.Fatalf("expected [node_cpu_seconds_total], got %v", result.Completion.Values)
+	}
+}
+
+func TestHandleCompletion_PromptMetricNames(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{
+		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
+			if label == "__name__" {
+				return model.LabelValues{"up", "node_cpu_seconds_total", "http_requests_total"}, nil, nil
+			}
+			return nil, nil, nil
+		},
+	}
+	req := &mcp.CompleteRequest{
+		Params: &mcp.CompleteParams{
+			Ref: &mcp.CompleteReference{
+				Type: "ref/prompt",
+				Name: "all-available-metrics",
+			},
+			Argument: mcp.CompleteParamsArgument{
+				Name:  "prefix",
+				Value: "http",
+			},
+		},
+	}
+
+	result, err := handleCompletion(context.Background(), req, mock)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Completion.Values) != 1 || result.Completion.Values[0] != "http_requests_total" {
+		t.Fatalf("expected [http_requests_total], got %v", result.Completion.Values)
+	}
+}
+
+func TestHandleCompletion_UnknownResource(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{}
+	req := &mcp.CompleteRequest{
+		Params: &mcp.CompleteParams{
+			Ref: &mcp.CompleteReference{
+				Type: "ref/resource",
+				URI:  "prom:///unknown",
+			},
+			Argument: mcp.CompleteParamsArgument{
+				Name:  "x",
+				Value: "y",
+			},
+		},
+	}
+
+	result, err := handleCompletion(context.Background(), req, mock)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Completion.Values) != 0 {
+		t.Fatalf("expected empty values, got %v", result.Completion.Values)
 	}
 }
 

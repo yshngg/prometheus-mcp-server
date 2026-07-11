@@ -41,6 +41,13 @@ func (a *tsdbAdmin) DeleteSeriesHandler(ctx context.Context, request *mcp.CallTo
 		return nil, nil, fmt.Errorf("at least one match[] selector is required")
 	}
 
+	if request != nil && request.Session != nil {
+		confirmed, err := utils.ConfirmDestructive(ctx, request.Session, "Delete Series", fmt.Sprintf("Delete series matching %v in the configured time range.", input.Match))
+		if err == nil && !confirmed {
+			return nil, &DeleteSeriesResult{Success: false, Message: "Delete cancelled by user"}, nil
+		}
+	}
+
 	result := &DeleteSeriesResult{Success: true}
 	if err = a.API.DeleteSeries(ctx, input.Match, start, end); err != nil {
 		result.Success = false

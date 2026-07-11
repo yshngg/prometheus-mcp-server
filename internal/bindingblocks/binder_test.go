@@ -1,7 +1,6 @@
 package bindingblocks
 
 import (
-	"context"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -36,8 +35,14 @@ func TestBind_NoPanic(t *testing.T) {
 	b.Bind()
 }
 
-func TestAddResources_NoOp(t *testing.T) {
-	b := &binder{}
+func TestAddResources_RegistersResources(t *testing.T) {
+	server := mcp.NewServer(&mcp.Implementation{
+		Name:    "test",
+		Version: "1.0.0",
+	}, nil)
+	mock := &mockapi.PrometheusAPI{}
+	b := &binder{server: server, api: mock}
+
 	defer func() {
 		if r := recover(); r != nil {
 			t.Fatalf("addResources panicked: %v", r)
@@ -46,15 +51,18 @@ func TestAddResources_NoOp(t *testing.T) {
 	b.addResources()
 }
 
-func TestAllAvailableMetricsHandler(t *testing.T) {
-	result, err := allAvailableMetricsHandler(context.Background(), nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(result.Messages) != 1 {
-		t.Fatalf("expected 1 message, got %d", len(result.Messages))
-	}
-	if result.Messages[0].Role != "assistant" {
-		t.Fatalf("expected assistant role, got %s", result.Messages[0].Role)
-	}
+func TestPrompts_NoPanic(t *testing.T) {
+	server := mcp.NewServer(&mcp.Implementation{
+		Name:    "test",
+		Version: "1.0.0",
+	}, nil)
+	mock := &mockapi.PrometheusAPI{}
+	b := &binder{server: server, api: mock}
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("addPrompts panicked: %v", r)
+		}
+	}()
+	b.addPrompts()
 }

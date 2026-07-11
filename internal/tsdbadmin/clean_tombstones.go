@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/yshngg/prometheus-mcp-server/internal/utils"
 )
 
 type CleanTombstonesParams struct{}
@@ -14,6 +15,13 @@ type CleanTombstonesResult struct {
 }
 
 func (a *tsdbAdmin) CleanTombstonesHandler(ctx context.Context, request *mcp.CallToolRequest, input *CleanTombstonesParams) (*mcp.CallToolResult, *CleanTombstonesResult, error) {
+	if request != nil && request.Session != nil {
+		confirmed, err := utils.ConfirmDestructive(ctx, request.Session, "Clean Tombstones", "Remove deleted data from disk and clean up tombstones.")
+		if err == nil && !confirmed {
+			return nil, &CleanTombstonesResult{Success: false, Message: "Clean cancelled by user"}, nil
+		}
+	}
+
 	result := &CleanTombstonesResult{Success: true}
 	if err := a.API.CleanTombstones(ctx); err != nil {
 		result.Success = false
