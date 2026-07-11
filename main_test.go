@@ -631,13 +631,13 @@ func TestDestructiveToolMiddleware_ElicitConfirmed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("server connect: %v", err)
 	}
-	defer ss.Close()
+	defer func() { _ = ss.Close() }()
 
 	cs, err := client.Connect(ctx, ct, nil)
 	if err != nil {
 		t.Fatalf("client connect: %v", err)
 	}
-	defer cs.Close()
+	defer func() { _ = cs.Close() }()
 
 	_, err = cs.CallTool(ctx, &mcp.CallToolParams{Name: "delete-series"})
 	if err != nil {
