@@ -13,6 +13,24 @@ import (
 	"github.com/prometheus/common/model"
 )
 
+func connectTestClient(t *testing.T, server *mcp.Server) *mcp.ClientSession {
+	t.Helper()
+	ctx := context.Background()
+	st, ct := mcp.NewInMemoryTransports()
+	_, err := server.Connect(ctx, st, nil)
+	if err != nil {
+		t.Fatalf("server connect: %v", err)
+	}
+
+	client := mcp.NewClient(&mcp.Implementation{Name: "client", Version: "1.0"}, nil)
+	cs, err := client.Connect(ctx, ct, nil)
+	if err != nil {
+		t.Fatalf("client connect: %v", err)
+	}
+	t.Cleanup(func() { cs.Close() })
+	return cs
+}
+
 func TestNewBinder(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "test",
@@ -84,19 +102,7 @@ func TestPrompts_AllAvailableMetrics(t *testing.T) {
 	b.addPrompts()
 
 	ctx := context.Background()
-	st, ct := mcp.NewInMemoryTransports()
-	ss, err := server.Connect(ctx, st, nil)
-	if err != nil {
-		t.Fatalf("server connect: %v", err)
-	}
-	defer ss.Close()
-
-	client := mcp.NewClient(&mcp.Implementation{Name: "client", Version: "1.0"}, nil)
-	cs, err := client.Connect(ctx, ct, nil)
-	if err != nil {
-		t.Fatalf("client connect: %v", err)
-	}
-	defer cs.Close()
+	cs := connectTestClient(t, server)
 
 	result, err := cs.GetPrompt(ctx, &mcp.GetPromptParams{Name: "all-available-metrics"})
 	if err != nil {
@@ -105,7 +111,11 @@ func TestPrompts_AllAvailableMetrics(t *testing.T) {
 	if len(result.Messages) != 1 {
 		t.Fatalf("expected 1 message, got %d", len(result.Messages))
 	}
-	text := result.Messages[0].Content.(*mcp.TextContent).Text
+	tc, ok := result.Messages[0].Content.(*mcp.TextContent)
+	if !ok {
+		t.Fatalf("expected TextContent, got %T", result.Messages[0].Content)
+	}
+	text := tc.Text
 	if !strings.Contains(text, "up") || !strings.Contains(text, "http_requests") {
 		t.Fatalf("expected metric names in prompt, got: %s", text)
 	}
@@ -122,19 +132,7 @@ func TestPrompts_AllAvailableMetricsWithPrefix(t *testing.T) {
 	b.addPrompts()
 
 	ctx := context.Background()
-	st, ct := mcp.NewInMemoryTransports()
-	ss, err := server.Connect(ctx, st, nil)
-	if err != nil {
-		t.Fatalf("server connect: %v", err)
-	}
-	defer ss.Close()
-
-	client := mcp.NewClient(&mcp.Implementation{Name: "client", Version: "1.0"}, nil)
-	cs, err := client.Connect(ctx, ct, nil)
-	if err != nil {
-		t.Fatalf("client connect: %v", err)
-	}
-	defer cs.Close()
+	cs := connectTestClient(t, server)
 
 	result, err := cs.GetPrompt(ctx, &mcp.GetPromptParams{
 		Name:      "all-available-metrics",
@@ -143,7 +141,11 @@ func TestPrompts_AllAvailableMetricsWithPrefix(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get prompt: %v", err)
 	}
-	text := result.Messages[0].Content.(*mcp.TextContent).Text
+	tc, ok := result.Messages[0].Content.(*mcp.TextContent)
+	if !ok {
+		t.Fatalf("expected TextContent, got %T", result.Messages[0].Content)
+	}
+	text := tc.Text
 	if !strings.Contains(text, "node_cpu") {
 		t.Fatalf("expected node_cpu in metrics, got: %s", text)
 	}
@@ -166,19 +168,7 @@ func TestResources_ReadConfig(t *testing.T) {
 	b.addResources()
 
 	ctx := context.Background()
-	st, ct := mcp.NewInMemoryTransports()
-	ss, err := server.Connect(ctx, st, nil)
-	if err != nil {
-		t.Fatalf("server connect: %v", err)
-	}
-	defer ss.Close()
-
-	client := mcp.NewClient(&mcp.Implementation{Name: "client", Version: "1.0"}, nil)
-	cs, err := client.Connect(ctx, ct, nil)
-	if err != nil {
-		t.Fatalf("client connect: %v", err)
-	}
-	defer cs.Close()
+	cs := connectTestClient(t, server)
 
 	res, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "prom:///config"})
 	if err != nil {
@@ -203,19 +193,7 @@ func TestResources_ReadFlags(t *testing.T) {
 	b.addResources()
 
 	ctx := context.Background()
-	st, ct := mcp.NewInMemoryTransports()
-	ss, err := server.Connect(ctx, st, nil)
-	if err != nil {
-		t.Fatalf("server connect: %v", err)
-	}
-	defer ss.Close()
-
-	client := mcp.NewClient(&mcp.Implementation{Name: "client", Version: "1.0"}, nil)
-	cs, err := client.Connect(ctx, ct, nil)
-	if err != nil {
-		t.Fatalf("client connect: %v", err)
-	}
-	defer cs.Close()
+	cs := connectTestClient(t, server)
 
 	res, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "prom:///flags"})
 	if err != nil {
@@ -240,19 +218,7 @@ func TestResources_ReadBuildInfo(t *testing.T) {
 	b.addResources()
 
 	ctx := context.Background()
-	st, ct := mcp.NewInMemoryTransports()
-	ss, err := server.Connect(ctx, st, nil)
-	if err != nil {
-		t.Fatalf("server connect: %v", err)
-	}
-	defer ss.Close()
-
-	client := mcp.NewClient(&mcp.Implementation{Name: "client", Version: "1.0"}, nil)
-	cs, err := client.Connect(ctx, ct, nil)
-	if err != nil {
-		t.Fatalf("client connect: %v", err)
-	}
-	defer cs.Close()
+	cs := connectTestClient(t, server)
 
 	res, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "prom:///build-info"})
 	if err != nil {
@@ -273,21 +239,9 @@ func TestResources_ReadResourceTemplateQuery_NoQuery(t *testing.T) {
 	b.addResources()
 
 	ctx := context.Background()
-	st, ct := mcp.NewInMemoryTransports()
-	ss, err := server.Connect(ctx, st, nil)
-	if err != nil {
-		t.Fatalf("server connect: %v", err)
-	}
-	defer ss.Close()
+	cs := connectTestClient(t, server)
 
-	client := mcp.NewClient(&mcp.Implementation{Name: "client", Version: "1.0"}, nil)
-	cs, err := client.Connect(ctx, ct, nil)
-	if err != nil {
-		t.Fatalf("client connect: %v", err)
-	}
-	defer cs.Close()
-
-	_, err = cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "prom:///api/v1/query"})
+	_, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "prom:///api/v1/query"})
 	if err == nil {
 		t.Fatal("expected error for missing query parameter")
 	}
@@ -304,21 +258,9 @@ func TestResources_ReadResourceTemplateQuery_APIFailure(t *testing.T) {
 	b.addResources()
 
 	ctx := context.Background()
-	st, ct := mcp.NewInMemoryTransports()
-	ss, err := server.Connect(ctx, st, nil)
-	if err != nil {
-		t.Fatalf("server connect: %v", err)
-	}
-	defer ss.Close()
+	cs := connectTestClient(t, server)
 
-	client := mcp.NewClient(&mcp.Implementation{Name: "client", Version: "1.0"}, nil)
-	cs, err := client.Connect(ctx, ct, nil)
-	if err != nil {
-		t.Fatalf("client connect: %v", err)
-	}
-	defer cs.Close()
-
-	_, err = cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "prom:///api/v1/query?query=up"})
+	_, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "prom:///api/v1/query?query=up"})
 	if err == nil {
 		t.Fatal("expected error from API failure")
 	}
@@ -335,21 +277,9 @@ func TestPrompts_AllAvailableMetricsAPIError(t *testing.T) {
 	b.addPrompts()
 
 	ctx := context.Background()
-	st, ct := mcp.NewInMemoryTransports()
-	ss, err := server.Connect(ctx, st, nil)
-	if err != nil {
-		t.Fatalf("server connect: %v", err)
-	}
-	defer ss.Close()
+	cs := connectTestClient(t, server)
 
-	client := mcp.NewClient(&mcp.Implementation{Name: "client", Version: "1.0"}, nil)
-	cs, err := client.Connect(ctx, ct, nil)
-	if err != nil {
-		t.Fatalf("client connect: %v", err)
-	}
-	defer cs.Close()
-
-	_, err = cs.GetPrompt(ctx, &mcp.GetPromptParams{Name: "all-available-metrics"})
+	_, err := cs.GetPrompt(ctx, &mcp.GetPromptParams{Name: "all-available-metrics"})
 	if err == nil {
 		t.Fatal("expected prompt error on API failure")
 	}
@@ -362,21 +292,9 @@ func TestResources_ReadResourceTemplateLabelValues_InvalidURI(t *testing.T) {
 	b.addResources()
 
 	ctx := context.Background()
-	st, ct := mcp.NewInMemoryTransports()
-	ss, err := server.Connect(ctx, st, nil)
-	if err != nil {
-		t.Fatalf("server connect: %v", err)
-	}
-	defer ss.Close()
+	cs := connectTestClient(t, server)
 
-	client := mcp.NewClient(&mcp.Implementation{Name: "client", Version: "1.0"}, nil)
-	cs, err := client.Connect(ctx, ct, nil)
-	if err != nil {
-		t.Fatalf("client connect: %v", err)
-	}
-	defer cs.Close()
-
-	_, err = cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "prom:///api/v1/label//values"})
+	_, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "prom:///api/v1/label//values"})
 	if err == nil {
 		t.Fatal("expected error for invalid label name URI")
 	}
@@ -393,21 +311,9 @@ func TestResources_ReadResourceTemplateLabelValues_APIFailure(t *testing.T) {
 	b.addResources()
 
 	ctx := context.Background()
-	st, ct := mcp.NewInMemoryTransports()
-	ss, err := server.Connect(ctx, st, nil)
-	if err != nil {
-		t.Fatalf("server connect: %v", err)
-	}
-	defer ss.Close()
+	cs := connectTestClient(t, server)
 
-	client := mcp.NewClient(&mcp.Implementation{Name: "client", Version: "1.0"}, nil)
-	cs, err := client.Connect(ctx, ct, nil)
-	if err != nil {
-		t.Fatalf("client connect: %v", err)
-	}
-	defer cs.Close()
-
-	_, err = cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "prom:///api/v1/label/job/values"})
+	_, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "prom:///api/v1/label/job/values"})
 	if err == nil {
 		t.Fatal("expected error from API failure")
 	}
@@ -426,19 +332,7 @@ func TestResources_ReadResourceTemplateQuery(t *testing.T) {
 	b.addResources()
 
 	ctx := context.Background()
-	st, ct := mcp.NewInMemoryTransports()
-	ss, err := server.Connect(ctx, st, nil)
-	if err != nil {
-		t.Fatalf("server connect: %v", err)
-	}
-	defer ss.Close()
-
-	client := mcp.NewClient(&mcp.Implementation{Name: "client", Version: "1.0"}, nil)
-	cs, err := client.Connect(ctx, ct, nil)
-	if err != nil {
-		t.Fatalf("client connect: %v", err)
-	}
-	defer cs.Close()
+	cs := connectTestClient(t, server)
 
 	res, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "prom:///api/v1/query?query=up"})
 	if err != nil {
@@ -463,19 +357,7 @@ func TestResources_ReadRuntimeInfo(t *testing.T) {
 	b.addResources()
 
 	ctx := context.Background()
-	st, ct := mcp.NewInMemoryTransports()
-	ss, err := server.Connect(ctx, st, nil)
-	if err != nil {
-		t.Fatalf("server connect: %v", err)
-	}
-	defer ss.Close()
-
-	client := mcp.NewClient(&mcp.Implementation{Name: "client", Version: "1.0"}, nil)
-	cs, err := client.Connect(ctx, ct, nil)
-	if err != nil {
-		t.Fatalf("client connect: %v", err)
-	}
-	defer cs.Close()
+	cs := connectTestClient(t, server)
 
 	res, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "prom:///runtime-info"})
 	if err != nil {
@@ -500,19 +382,7 @@ func TestResources_ReadTSDBStats(t *testing.T) {
 	b.addResources()
 
 	ctx := context.Background()
-	st, ct := mcp.NewInMemoryTransports()
-	ss, err := server.Connect(ctx, st, nil)
-	if err != nil {
-		t.Fatalf("server connect: %v", err)
-	}
-	defer ss.Close()
-
-	client := mcp.NewClient(&mcp.Implementation{Name: "client", Version: "1.0"}, nil)
-	cs, err := client.Connect(ctx, ct, nil)
-	if err != nil {
-		t.Fatalf("client connect: %v", err)
-	}
-	defer cs.Close()
+	cs := connectTestClient(t, server)
 
 	res, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "prom:///tsdb-stats"})
 	if err != nil {
@@ -537,19 +407,7 @@ func TestResources_ReadWALReplayStats(t *testing.T) {
 	b.addResources()
 
 	ctx := context.Background()
-	st, ct := mcp.NewInMemoryTransports()
-	ss, err := server.Connect(ctx, st, nil)
-	if err != nil {
-		t.Fatalf("server connect: %v", err)
-	}
-	defer ss.Close()
-
-	client := mcp.NewClient(&mcp.Implementation{Name: "client", Version: "1.0"}, nil)
-	cs, err := client.Connect(ctx, ct, nil)
-	if err != nil {
-		t.Fatalf("client connect: %v", err)
-	}
-	defer cs.Close()
+	cs := connectTestClient(t, server)
 
 	res, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "prom:///wal-replay-stats"})
 	if err != nil {
@@ -574,19 +432,7 @@ func TestResources_ReadResourceTemplateLabelValues(t *testing.T) {
 	b.addResources()
 
 	ctx := context.Background()
-	st, ct := mcp.NewInMemoryTransports()
-	ss, err := server.Connect(ctx, st, nil)
-	if err != nil {
-		t.Fatalf("server connect: %v", err)
-	}
-	defer ss.Close()
-
-	client := mcp.NewClient(&mcp.Implementation{Name: "client", Version: "1.0"}, nil)
-	cs, err := client.Connect(ctx, ct, nil)
-	if err != nil {
-		t.Fatalf("client connect: %v", err)
-	}
-	defer cs.Close()
+	cs := connectTestClient(t, server)
 
 	res, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "prom:///api/v1/label/job/values"})
 	if err != nil {

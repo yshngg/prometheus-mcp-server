@@ -332,7 +332,7 @@ func handleCompletion(ctx context.Context, req *mcp.CompleteRequest, promCli api
 				},
 			}, nil
 
-		case strings.Contains(uri, "query"):
+		case strings.Contains(uri, "query?query={promql}"):
 			values, _, err := promCli.LabelValues(ctx, "__name__", nil, time.Time{}, time.Time{})
 			if err != nil {
 				return nil, err
