@@ -617,9 +617,25 @@ func TestRunStdio_CancelledContext(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	err := server.Run(ctx, &mcp.StdioTransport{})
+	err := runStdio(ctx, server)
 	if err == nil {
 		t.Fatal("expected error from cancelled context")
+	}
+}
+
+func TestNewServer_ValidPromAddr(t *testing.T) {
+	// newServer creates an HTTP client but does not connect to Prometheus,
+	// so even an unreachable address works here (connection happens lazily
+	// on the first API call).
+	server, promCli, err := newServer("http://127.0.0.1:1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if server == nil {
+		t.Fatal("expected non-nil server")
+	}
+	if promCli == nil {
+		t.Fatal("expected non-nil client")
 	}
 }
 

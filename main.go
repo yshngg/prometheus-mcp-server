@@ -178,6 +178,33 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	server, promCli, err := newServer(*promAddr)
+	if err != nil {
+		klog.ErrorS(err, "new prometheus client")
+		klog.Flush()
+		os.Exit(1)
+	}
+
+	switch *transportType {
+	case "http":
+		if err := runHTTP(ctx, server, promCli, *mcpAddr, *authToken); err != nil {
+			klog.ErrorS(err, "listen and serve")
+			klog.Flush()
+			os.Exit(1)
+		}
+	default:
+		if err := runStdio(ctx, server); err != nil {
+			klog.ErrorS(err, "run server")
+			klog.Flush()
+			os.Exit(1)
+		}
+	}
+}
+
+// newServer creates and configures the MCP server with all middleware,
+// tools, resources, and prompts bound to the Prometheus API client.
+// Extracted from main() so it can be tested independently.
+func newServer(promAddr string) (*mcp.Server, api.PrometheusAPI, error) {
 	transport := &http.Transport{
 		MaxIdleConns:        100,
 		MaxIdleConnsPerHost: 100,
@@ -189,11 +216,9 @@ func main() {
 		Timeout:   30 * time.Second,
 	}
 
-	promCli, err := api.New(*promAddr, httpClient, nil)
+	promCli, err := api.New(promAddr, httpClient, nil)
 	if err != nil {
-		klog.ErrorS(err, "new prometheus client")
-		klog.Flush()
-		os.Exit(1)
+		return nil, nil, err
 	}
 
 	server := mcp.NewServer(&mcp.Implementation{
@@ -203,7 +228,6 @@ func main() {
 		Instructions: "You are connected to a Prometheus monitoring instance. " +
 			"Use expression queries (instant-query, range-query) to explore time-series data. " +
 			"Use metadata tools (list-label-names, list-label-values, find-series-by-labels) to discover available metrics and labels. " +
-			"Use status tools (config, flags, runtime-information, build-information, tsdb-stats, wal-replay-stats) to inspect server state. " +
 			"Resources are available at prom:/// URIs (e.g., prom:///config, prom:///api/v1/query?query=up) for direct data access. " +
 			"Use management tools (health-check, readiness-check, reload, quit) with caution as quit and reload affect server operation.",
 		SchemaCache: mcp.NewSchemaCache(),
@@ -218,13 +242,7 @@ func main() {
 
 	binder := bindingblocks.NewBinder(server, promCli)
 	binder.Bind()
-
-	switch *transportType {
-	case "http":
-		runHTTP(ctx, server, promCli, *mcpAddr, *authToken)
-	default:
-		runStdio(ctx, server)
-	}
+	return server, promCli, nil
 }
 
 func healthzHandler(w http.ResponseWriter, r *http.Request) {
@@ -262,7 +280,7 @@ func authMiddleware(token string) func(http.Handler) http.Handler {
 	return auth.RequireBearerToken(verifier, nil)
 }
 
-func runHTTP(ctx context.Context, server *mcp.Server, promCli api.PrometheusAPI, addr string, authToken string) {
+func runHTTP(ctx context.Context, server *mcp.Server, promCli api.PrometheusAPI, addr string, authToken string) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("pong"))
@@ -291,19 +309,14 @@ func runHTTP(ctx context.Context, server *mcp.Server, promCli api.PrometheusAPI,
 
 	klog.InfoS("Listening on http", "addr", addr)
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		klog.ErrorS(err, "listen and serve with Streamable HTTP transport")
-		klog.Flush()
-		os.Exit(1)
+		return err
 	}
+	return nil
 }
 
-func runStdio(ctx context.Context, server *mcp.Server) {
+func runStdio(ctx context.Context, server *mcp.Server) error {
 	klog.InfoS("Listening on stdio")
-	if err := server.Run(ctx, &mcp.StdioTransport{}); err != nil {
-		klog.ErrorS(err, "run server with stdio transport")
-		klog.Flush()
-		os.Exit(1)
-	}
+	return server.Run(ctx, &mcp.StdioTransport{})
 }
 
 func handleCompletion(ctx context.Context, req *mcp.CompleteRequest, promCli api.PrometheusAPI) (*mcp.CompleteResult, error) {

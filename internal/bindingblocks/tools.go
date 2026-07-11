@@ -31,11 +31,11 @@ func ptrBool(v bool) *bool {
 	return &v
 }
 
-// addTools registers Prometheus query tools with the MCP server.
-// It adds tools for expression queries (instant and range) and metadata queries.
+// addTools makes Prometheus capabilities discoverable by LLMs as MCP tool calls.
 func (b *binder) addTools() {
-	// Expression queries
-	// Query language expressions may be evaluated at a single instant or over a range of time.
+	// Expression queries accept PromQL which can be evaluated at a point in time or
+	// over a range. The output schema avoids model.Value (interface) and uses
+	// oneOf for scalar, vector, and matrix shapes so LLMs can parse results.
 	{
 		expressionQuerier := expressionquery.NewExpressionQuerier(b.api)
 		mcp.AddTool(b.server, &mcp.Tool{
@@ -59,8 +59,9 @@ func (b *binder) addTools() {
 		}, expressionQuerier.RangeQueryHandler)
 	}
 
-	// Querying metadata
-	// Prometheus offers a set of API endpoints to query metadata about series and their labels.
+	// LLMs need label and series metadata to construct accurate PromQL expressions.
+	// These tools expose the label namespace and target metadata without executing
+	// full queries, which helps the LLM discover metric names and label values.
 	{
 		metadataQuerier := metadataquery.NewMetadataQuerier(b.api)
 		mcp.AddTool(b.server, &mcp.Tool{
@@ -109,8 +110,8 @@ func (b *binder) addTools() {
 		}, metadataQuerier.MetricsMetadataQueryHandler)
 	}
 
-	// Targets
-	// An overview of the current state of the Prometheus target discovery.
+	// Target discovery displays scrape pool states (active/dropped) so LLMs can
+	// diagnose missing metrics without parsing raw Prometheus API responses.
 	{
 		targetDiscoverer := targetdiscover.NewTargetDiscoverer(b.api)
 		mcp.AddTool(b.server, &mcp.Tool{
@@ -123,8 +124,8 @@ func (b *binder) addTools() {
 		}, targetDiscoverer.TargetDiscoverHandler)
 	}
 
-	// Rules
-	// A list of alerting and recording rules that are currently loaded.
+	// Rule introspection helps LLMs understand what alerting and recording rules
+	// are active, enabling them to explain firing alerts and suggest threshold changes.
 	{
 		ruleQuerier := rulequery.NewRuleQuerier(b.api)
 		mcp.AddTool(b.server, &mcp.Tool{
@@ -137,8 +138,8 @@ func (b *binder) addTools() {
 		}, ruleQuerier.RuleQueryHandler)
 	}
 
-	// Alerts
-	// A list of all active alerts.
+	// Current alerts give LLMs a snapshot of what is firing, which is useful for
+	// incident response and root-cause analysis alongside rule definitions.
 	{
 		alertQuerier := alertquery.NewAlertQuerier(b.api)
 		mcp.AddTool(b.server, &mcp.Tool{
@@ -151,8 +152,8 @@ func (b *binder) addTools() {
 		}, alertQuerier.AlertQueryHandler)
 	}
 
-	// Alertmanagers
-	// An overview of the current state of the Prometheus alertmanager discovery.
+	// Alertmanager discovery reveals which alertmanagers are reachable so LLMs can
+	// diagnose notification delivery issues.
 	{
 		alertmanagerDiscoverer := alertmanagerdiscover.NewAlertmanagerDiscoverer(b.api)
 		mcp.AddTool(b.server, &mcp.Tool{
@@ -166,8 +167,8 @@ func (b *binder) addTools() {
 	}
 
 
-	// TSDB Admin APIs
-	// Expose database functionalities for the advanced user.
+	// TSDB write operations cannot be undone. The destructive hint annotation
+	// triggers the elicitation middleware to confirm before executing.
 	{
 		tsdbAdmin := tsdbadmin.NewTSDBAdmin(b.api)
 		mcp.AddTool(b.server, &mcp.Tool{
@@ -200,8 +201,9 @@ func (b *binder) addTools() {
 		}, tsdbAdmin.CleanTombstonesHandler)
 	}
 
-	// Management API
-	// Prometheus provides a set of management APIs to facilitate automation and integration.
+	// Reload and quit affect the running Prometheus process. The destructive hint
+	// annotation triggers the elicitation middleware so users confirm before these
+	// operations execute. Health checks are read-only and safe for repeated calls.
 	{
 		manager := manage.NewManager(b.api)
 		mcp.AddTool(b.server, &mcp.Tool{
