@@ -11,6 +11,9 @@ type Result struct {
 // ResultOf returns a Result based on err. If err is nil, the result
 // indicates success. Otherwise, the result indicates failure with the
 // error message.
+//
+// ResultOf returns a Result based on err. If err is nil, the result
+// indicates success. Otherwise, it indicates failure with the error message.
 func ResultOf(err error) *Result {
 	if err != nil {
 		return &Result{Success: false, Message: err.Error()}

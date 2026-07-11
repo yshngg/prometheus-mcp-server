@@ -17,6 +17,9 @@ type CachingPrometheusAPI struct {
 	cache *cache.Cache
 }
 
+// NewCachingAPI wraps a PrometheusAPI with an in-memory TTL cache for
+// LabelNames and LabelValues queries without match/start/end filters.
+// Other methods pass through to the inner implementation unchanged.
 func NewCachingAPI(inner PrometheusAPI, ttl time.Duration) PrometheusAPI {
 	return &CachingPrometheusAPI{
 		PrometheusAPI: inner,

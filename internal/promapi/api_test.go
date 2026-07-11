@@ -96,8 +96,8 @@ func TestCachingAPI_LabelNamesWithFilter(t *testing.T) {
 
 	ctx := context.Background()
 	// With match filter — should bypass cache
-	caching.LabelNames(ctx, []string{"up"}, time.Time{}, time.Time{})
-	caching.LabelNames(ctx, []string{"up"}, time.Time{}, time.Time{})
+	_, _, _ = caching.LabelNames(ctx, []string{"up"}, time.Time{}, time.Time{})
+	_, _, _ = caching.LabelNames(ctx, []string{"up"}, time.Time{}, time.Time{})
 	if inner.labelNamesCallCount != 2 {
 		t.Fatalf("expected 2 API calls (no cache with filter), got %d", inner.labelNamesCallCount)
 	}
