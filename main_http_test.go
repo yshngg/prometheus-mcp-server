@@ -50,5 +50,3 @@ func TestRunHTTP_Ping(t *testing.T) {
 	cancel()
 	time.Sleep(50 * time.Millisecond)
 }
-
-

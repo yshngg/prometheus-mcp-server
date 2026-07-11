@@ -52,7 +52,10 @@ func (b *binder) addStaticResources() {
 				if err != nil {
 					return "", err
 				}
-				data, _ := json.MarshalIndent(result, "", "  ")
+				data, err := json.MarshalIndent(result, "", "  ")
+				if err != nil {
+					return "", fmt.Errorf("marshal response: %w", err)
+				}
 				return string(data), nil
 			},
 		},
@@ -67,7 +70,10 @@ func (b *binder) addStaticResources() {
 				if err != nil {
 					return "", err
 				}
-				data, _ := json.MarshalIndent(result, "", "  ")
+				data, err := json.MarshalIndent(result, "", "  ")
+				if err != nil {
+					return "", fmt.Errorf("marshal response: %w", err)
+				}
 				return string(data), nil
 			},
 		},
@@ -82,7 +88,10 @@ func (b *binder) addStaticResources() {
 				if err != nil {
 					return "", err
 				}
-				data, _ := json.MarshalIndent(result, "", "  ")
+				data, err := json.MarshalIndent(result, "", "  ")
+				if err != nil {
+					return "", fmt.Errorf("marshal response: %w", err)
+				}
 				return string(data), nil
 			},
 		},
@@ -97,7 +106,10 @@ func (b *binder) addStaticResources() {
 				if err != nil {
 					return "", err
 				}
-				data, _ := json.MarshalIndent(result, "", "  ")
+				data, err := json.MarshalIndent(result, "", "  ")
+				if err != nil {
+					return "", fmt.Errorf("marshal response: %w", err)
+				}
 				return string(data), nil
 			},
 		},
@@ -112,7 +124,10 @@ func (b *binder) addStaticResources() {
 				if err != nil {
 					return "", err
 				}
-				data, _ := json.MarshalIndent(result, "", "  ")
+				data, err := json.MarshalIndent(result, "", "  ")
+				if err != nil {
+					return "", fmt.Errorf("marshal response: %w", err)
+				}
 				return string(data), nil
 			},
 		},
@@ -167,11 +182,14 @@ func (b *binder) addResourceTemplates() {
 			return nil, fmt.Errorf("query %q: %w", promql, err)
 		}
 
-		data, _ := json.MarshalIndent(map[string]interface{}{
+		data, err := json.MarshalIndent(map[string]interface{}{
 			"status":   "success",
 			"data":     value,
 			"warnings": warnings,
 		}, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("marshal query result: %w", err)
+		}
 		return &mcp.ReadResourceResult{
 			Contents: []*mcp.ResourceContents{
 				{
@@ -205,12 +223,15 @@ func (b *binder) addResourceTemplates() {
 		for i, v := range values {
 			result[i] = string(v)
 		}
-		data, _ := json.MarshalIndent(map[string]interface{}{
+		data, err := json.MarshalIndent(map[string]interface{}{
 			"status":    "success",
 			"data":      result,
 			"warnings":  warnings,
 			"labelName": labelName,
 		}, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("marshal label values: %w", err)
+		}
 
 		return &mcp.ReadResourceResult{
 			Contents: []*mcp.ResourceContents{

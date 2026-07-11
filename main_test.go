@@ -579,6 +579,11 @@ func TestRunStdio_CancelledContext(t *testing.T) {
 	}
 }
 
+// TestMainVersionFlag tests the main function's -version flag by running the
+// test binary as a subprocess with GO_UNDER_TEST=1. When set, the test re-enters
+// this function and calls main() with os.Args set to ["prometheus-mcp-server",
+// "-version"]. main() prints the version and calls os.Exit(0), which the testing
+// framework captures as a successful test completion.
 func TestMainVersionFlag(t *testing.T) {
 	if os.Getenv("GO_UNDER_TEST") == "1" {
 		os.Args = []string{"prometheus-mcp-server", "-version"}
