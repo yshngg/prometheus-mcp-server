@@ -22,7 +22,11 @@ func TestRunHTTP_Ping(t *testing.T) {
 	defer cancel()
 
 	addr := "localhost:9876"
-	go func() { _ = runHTTP(ctx, server, mock, addr, "") }()
+	go func() {
+		if err := runHTTP(ctx, server, mock, addr, ""); err != nil {
+			t.Logf("runHTTP exited: %v", err)
+		}
+	}()
 
 	time.Sleep(50 * time.Millisecond)
 
