@@ -1,0 +1,117 @@
+package tsdbadmin
+
+import (
+	"context"
+	"errors"
+	"testing"
+	"time"
+
+	"github.com/yshngg/prometheus-mcp-server/internal/mockapi"
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+)
+
+func TestSnapshotHandler_Success(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{
+		SnapshotFunc: func(ctx context.Context, skipHead bool) (v1.SnapshotResult, error) {
+			return v1.SnapshotResult{Name: "snapshot-20250101"}, nil
+		},
+	}
+	a := NewTSDBAdmin(mock)
+	_, result, err := a.SnapshotHandler(context.Background(), nil, &SnapshotParams{SkipHead: true})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Name != "snapshot-20250101" {
+		t.Fatalf("expected snapshot name, got %s", result.Name)
+	}
+}
+
+func TestSnapshotHandler_APIError(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{
+		SnapshotFunc: func(ctx context.Context, skipHead bool) (v1.SnapshotResult, error) {
+			return v1.SnapshotResult{}, errors.New("api error")
+		},
+	}
+	a := NewTSDBAdmin(mock)
+	_, _, err := a.SnapshotHandler(context.Background(), nil, &SnapshotParams{})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestDeleteSeriesHandler_Success(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{
+		DeleteSeriesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time) error {
+			return nil
+		},
+	}
+	a := NewTSDBAdmin(mock)
+	_, result, err := a.DeleteSeriesHandler(context.Background(), nil, &DeleteSeriesParams{
+		Match: []string{"up"},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !result.Success {
+		t.Fatal("expected success")
+	}
+}
+
+func TestDeleteSeriesHandler_APIError(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{
+		DeleteSeriesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time) error {
+			return errors.New("api error")
+		},
+	}
+	a := NewTSDBAdmin(mock)
+	_, result, err := a.DeleteSeriesHandler(context.Background(), nil, &DeleteSeriesParams{
+		Match: []string{"up"},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Success {
+		t.Fatal("expected failure")
+	}
+}
+
+func TestDeleteSeriesHandler_NoMatch(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{}
+	a := NewTSDBAdmin(mock)
+	_, _, err := a.DeleteSeriesHandler(context.Background(), nil, &DeleteSeriesParams{})
+	if err == nil {
+		t.Fatal("expected error for empty match")
+	}
+}
+
+func TestCleanTombstonesHandler_Success(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{
+		CleanTombstonesFunc: func(ctx context.Context) error {
+			return nil
+		},
+	}
+	a := NewTSDBAdmin(mock)
+	_, result, err := a.CleanTombstonesHandler(context.Background(), nil, &CleanTombstonesParams{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !result.Success {
+		t.Fatal("expected success")
+	}
+}
+
+func TestCleanTombstonesHandler_APIError(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{
+		CleanTombstonesFunc: func(ctx context.Context) error {
+			return errors.New("api error")
+		},
+	}
+	a := NewTSDBAdmin(mock)
+	_, result, err := a.CleanTombstonesHandler(context.Background(), nil, &CleanTombstonesParams{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Success {
+		t.Fatal("expected failure")
+	}
+}

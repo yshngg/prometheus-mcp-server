@@ -11,15 +11,6 @@ import (
 	"github.com/yshngg/prometheus-mcp-server/internal/utils"
 )
 
-const SeriesEndpoint = "/series"
-
-// URL query parameters:
-// match[]=<series_selector>: Repeated series selector argument that selects the series to return. At least one match[] argument must be provided.
-// start=<rfc3339 | unix_timestamp>: Start timestamp.
-// end=<rfc3339 | unix_timestamp>: End timestamp.
-// limit=<number>: Maximum number of returned series. Optional. 0 means disabled.
-// The following example returns all series that match either of the selectors up or process_start_time_seconds{job="prometheus"}:
-// curl -g 'http://localhost:9090/api/v1/series?' --data-urlencode 'match[]=up' --data-urlencode 'match[]=process_start_time_seconds{job="prometheus"}'
 type SeriesArguments struct {
 	Match []string `json:"match[]" jsonschema:"<series_selector>: Repeated series selector argument that selects the series to return. At least one match[] argument must be provided."`
 	Start string   `json:"start,omitzero" jsonschema:"<rfc3339 | unix_timestamp>: Start timestamp."`
@@ -37,11 +28,15 @@ func (q *metadataQuerier) SeriesHandler(ctx context.Context, request *mcp.CallTo
 		start, end time.Time
 		err        error
 	)
-	if start, err = utils.ParseTime(input.Start); err != nil {
-		slog.Warn("parse start time", "err", err)
+	if input.Start != "" {
+		if start, err = utils.ParseTime(input.Start); err != nil {
+			slog.Warn("parse start time", "err", err)
+		}
 	}
-	if end, err = utils.ParseTime(input.End); err != nil {
-		slog.Warn("parse end time", "err", err)
+	if input.End != "" {
+		if end, err = utils.ParseTime(input.End); err != nil {
+			slog.Warn("parse end time", "err", err)
+		}
 	}
 
 	opts := make([]v1.Option, 0)

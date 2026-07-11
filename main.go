@@ -1,14 +1,17 @@
-// Package main provides a server that exposes Prometheus query capabilities via the Model Context Protocol (MCP).
 package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"text/tabwriter"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/yshngg/prometheus-mcp-server/internal/bindingblocks"
@@ -16,28 +19,17 @@ import (
 	"github.com/yshngg/prometheus-mcp-server/internal/version"
 )
 
-// Schema is the identifier for the Prometheus schema.
 const Schema = "prom"
 
-// main starts the MCP server with Prometheus query capabilities,
-// selecting the transport mechanism (stdio, HTTP, or SSE) based on command-line flags.
-// It initializes the Prometheus client, binds query handlers,
-// and serves requests until termination.
-// The function exits the program on critical errors or when printing version information.
 func main() {
 	fs := flag.NewFlagSet("prometheus-mcp-server", flag.ExitOnError)
 	var (
-		// promAddr is the address of the Prometheus server to connect to.
-		promAddr = fs.String("prom-addr", "http://localhost:9090/", "The address of the Prometheus to connect to.")
-		// mcpAddr is the address for the MCP server to listen on.
-		mcpAddr = fs.String("mcp-addr", "localhost:8080", "The address of the MCP server to listen on.")
-		// transportType specifies the transport mechanism (stdio, sse, or http).
+		promAddr      = fs.String("prom-addr", "http://localhost:9090/", "The address of the Prometheus to connect to.")
+		mcpAddr       = fs.String("mcp-addr", "localhost:8080", "The address of the MCP server to listen on.")
 		transportType = fs.String("transport", "stdio", "Transport type (stdio, sse or http).\nThe mechanisms that handle the underlying communication between clients and servers.")
-		// printVersion prints the version and exit.
-		printVersion = fs.Bool("version", false, "Print the version and exit.")
+		printVersion  = fs.Bool("version", false, "Print the version and exit.")
 	)
 	fs.Usage = usageFor(fs, "prometheus-mcp-server [flags]")
-	// Parse command-line flags.
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		slog.Error("parse args", "err", err)
 		os.Exit(1)
@@ -48,12 +40,26 @@ func main() {
 		os.Exit(0)
 	}
 
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "prometheus-mcp-server",
 		Version: string(version.Info.Number),
 	}, nil)
 
-	promCli, err := api.New(*promAddr, http.DefaultClient, nil)
+	transport := &http.Transport{
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 100,
+		MaxConnsPerHost:     100,
+		IdleConnTimeout:     90 * time.Second,
+	}
+	httpClient := &http.Client{
+		Transport: transport,
+		Timeout:   30 * time.Second,
+	}
+
+	promCli, err := api.New(*promAddr, httpClient, nil)
 	if err != nil {
 		slog.Error("new prometheus client", "err", err)
 		os.Exit(1)
@@ -62,51 +68,75 @@ func main() {
 	binder := bindingblocks.NewBinder(server, promCli)
 	binder.Bind()
 
-	if *transportType == "http" {
-		http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-			if _, err := w.Write([]byte("pong")); err != nil {
-				slog.Error("write pong", "err", err)
-				os.Exit(1)
-			}
-		})
-
-		// Run the server over Streamable HTTP
-		streamableHTTPHandler := mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server {
-			return server
-		}, nil)
-		http.Handle("/mcp", streamableHTTPHandler)
-
-		slog.Info("Listening on http://" + *mcpAddr)
-		if err := http.ListenAndServe(*mcpAddr, nil); err != nil {
-			slog.Error("listen and serve with Streamable HTTP transport", "err", err)
-			os.Exit(1)
-		}
+	switch *transportType {
+	case "http":
+		runHTTP(ctx, server, *mcpAddr)
+	case "sse":
+		runSSE(ctx, server, *mcpAddr)
+	default:
+		runStdio(ctx, server)
 	}
+}
 
-	// Backwards Compatibility
-	if *transportType == "sse" {
-		slog.Warn("HTTP+SSE transport is deprecated. Please use Streamable HTTP instead.")
+func runHTTP(ctx context.Context, server *mcp.Server, addr string) {
+	mux := http.NewServeMux()
+		mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("pong"))
+	})
+	mux.Handle("/mcp", mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server {
+		return server
+	}, nil))
 
-		http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-			if _, err := w.Write([]byte("pong")); err != nil {
-				slog.Error("write pong", "err", err)
-				os.Exit(1)
-			}
-		})
+	srv := &http.Server{Addr: addr, Handler: mux}
 
-		sseHandler := mcp.NewSSEHandler(func(request *http.Request) *mcp.Server { return server }, nil)
-		http.Handle("/mcp", sseHandler)
-
-		slog.Info("Listening on http://" + *mcpAddr)
-		if err := http.ListenAndServe(*mcpAddr, nil); err != nil {
-			slog.Error("listen and serve with HTTP+SSE transport", "err", err)
-			os.Exit(1)
+	go func() {
+		<-ctx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			slog.Error("http server shutdown", "err", err)
 		}
-	}
+	}()
 
-	// Run the server over stdin/stdout, until the client disconnects
+	slog.Info("Listening on http://" + addr)
+	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		slog.Error("listen and serve with Streamable HTTP transport", "err", err)
+		os.Exit(1)
+	}
+}
+
+func runSSE(ctx context.Context, server *mcp.Server, addr string) {
+	slog.Warn("HTTP+SSE transport is deprecated. Please use Streamable HTTP instead.")
+
+	mux := http.NewServeMux()
+		mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("pong"))
+	})
+	mux.Handle("/mcp", mcp.NewSSEHandler(func(request *http.Request) *mcp.Server {
+		return server
+	}, nil))
+
+	srv := &http.Server{Addr: addr, Handler: mux}
+
+	go func() {
+		<-ctx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			slog.Error("http server shutdown", "err", err)
+		}
+	}()
+
+	slog.Info("Listening on http://" + addr)
+	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		slog.Error("listen and serve with HTTP+SSE transport", "err", err)
+		os.Exit(1)
+	}
+}
+
+func runStdio(ctx context.Context, server *mcp.Server) {
 	slog.Info("Listening on stdio")
-	if err := server.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
+	if err := server.Run(ctx, &mcp.StdioTransport{}); err != nil {
 		slog.Error("run server with stdio transport", "err", err)
 		os.Exit(1)
 	}

@@ -12,17 +12,6 @@ import (
 	"github.com/yshngg/prometheus-mcp-server/internal/utils"
 )
 
-const RangeQueryEndpoint = "/query_range"
-
-// URL query parameters:
-// query=<string>: Prometheus expression query string.
-// start=<rfc3339 | unix_timestamp>: Start timestamp, inclusive.
-// end=<rfc3339 | unix_timestamp>: End timestamp, inclusive.
-// step=<duration | float>: Query resolution step width in duration format or float number of seconds.
-// timeout=<duration>: Evaluation timeout. Optional. Defaults to and is capped by the value of the -query.timeout flag.
-// limit=<number>: Maximum number of returned series. Optional. 0 means disabled.
-// The following example evaluates the expression up over a 30-second range with a query resolution of 15 seconds.
-// curl 'http://localhost:9090/api/v1/query_range?query=up&start=2015-07-01T20:10:30.781Z&end=2015-07-01T20:11:00.781Z&step=15s'
 type RangeQueryArguments struct {
 	Query   string        `json:"query" jsonschema:"<string>: Prometheus expression query string."`
 	Start   string        `json:"start" jsonschema:"<rfc3339 | unix_timestamp>: Start timestamp, inclusive."`
@@ -43,11 +32,15 @@ func (q *expressionQuerier) RangeQueryHandler(ctx context.Context, request *mcp.
 		step       time.Duration
 		err        error
 	)
-	if start, err = utils.ParseTime(input.Start); err != nil {
-		slog.Warn("parse start time", "err", err)
+	if input.Start != "" {
+		if start, err = utils.ParseTime(input.Start); err != nil {
+			slog.Warn("parse start time", "err", err)
+		}
 	}
-	if end, err = utils.ParseTime(input.End); err != nil {
-		slog.Warn("parse end time", "err", err)
+	if input.End != "" {
+		if end, err = utils.ParseTime(input.End); err != nil {
+			slog.Warn("parse end time", "err", err)
+		}
 	}
 
 	if input.Step == 0 {

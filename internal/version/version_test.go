@@ -73,3 +73,21 @@ func TestInfoSet(t *testing.T) {
 		t.Error("expected BuildDate to be set to current time, got empty string")
 	}
 }
+
+func TestNumberString(t *testing.T) {
+	tests := []struct {
+		n        number
+		expected string
+	}{
+		{"", ""},
+		{"(unknown)", "(unknown)"},
+		{"(devel)", "(devel)"},
+		{"1.2.3", "v1.2.3"},
+	}
+	for _, tc := range tests {
+		got := tc.n.String()
+		if got != tc.expected {
+			t.Errorf("number(%q).String() = %q, want %q", string(tc.n), got, tc.expected)
+		}
+	}
+}
