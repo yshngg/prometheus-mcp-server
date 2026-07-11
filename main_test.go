@@ -34,6 +34,19 @@ func TestUsageFor(t *testing.T) {
 	_ = usage
 }
 
+func TestUsageFor_NoFlags(t *testing.T) {
+	fs := flag.NewFlagSet("test", flag.PanicOnError)
+	capture := captureStderr(t, func() {
+		usageFor(fs, "test")()
+	})
+	if !strings.Contains(capture, "VERSION") {
+		t.Fatal("expected output to contain version")
+	}
+	if !strings.Contains(capture, "test") {
+		t.Fatal("expected output to contain command name")
+	}
+}
+
 func TestUsageFor_EmptyDefault(t *testing.T) {
 	fs := flag.NewFlagSet("test", flag.PanicOnError)
 	fs.String("test-empty", "", "an empty default flag")
@@ -438,6 +451,26 @@ func TestHandleCompletion_APIErrorQuery(t *testing.T) {
 	_, err := handleCompletion(context.Background(), req, mock)
 	if err == nil {
 		t.Fatal("expected error from API failure")
+	}
+}
+
+func TestHandleCompletion_NonMatchingPrompt(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{}
+	req := &mcp.CompleteRequest{
+		Params: &mcp.CompleteParams{
+			Ref: &mcp.CompleteReference{
+				Type: "ref/prompt",
+				Name: "unknown-prompt",
+			},
+			Argument: mcp.CompleteParamsArgument{Name: "x", Value: "y"},
+		},
+	}
+	result, err := handleCompletion(context.Background(), req, mock)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Completion.Values) != 0 {
+		t.Fatalf("expected empty values, got %v", result.Completion.Values)
 	}
 }
 
