@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"expvar"
 	"flag"
 	"fmt"
 	"net/http"
@@ -14,6 +13,8 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/yshngg/prometheus-mcp-server/internal/bindingblocks"
 	"github.com/yshngg/prometheus-mcp-server/internal/prometheus/api"
 	"github.com/yshngg/prometheus-mcp-server/internal/version"
@@ -26,18 +27,48 @@ const (
 )
 
 var (
-	mcpRequests = expvar.NewInt("mcp_requests_total")
-	mcpErrors   = expvar.NewInt("mcp_errors_total")
+	mcpRequests = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "mcp_requests_total",
+			Help: "Total number of MCP tool calls.",
+		},
+		[]string{"tool"},
+	)
+	mcpErrors = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "mcp_errors_total",
+			Help: "Total number of MCP tool call errors.",
+		},
+		[]string{"tool"},
+	)
+	mcpDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name: "mcp_request_duration_seconds",
+			Help: "Duration of MCP tool calls in seconds.",
+		},
+		[]string{"tool"},
+	)
 )
 
 func metricsMiddleware(next mcp.MethodHandler) mcp.MethodHandler {
 	return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
-		if method == methodCallTool {
-			mcpRequests.Add(1)
+		if method != methodCallTool {
+			return next(ctx, method, req)
 		}
+
+		toolName := ""
+		if req != nil {
+			if callReq, ok := req.GetParams().(*mcp.CallToolParams); ok {
+				toolName = callReq.Name
+			}
+		}
+
+		start := time.Now()
+		mcpRequests.WithLabelValues(toolName).Inc()
 		result, err := next(ctx, method, req)
-		if method == methodCallTool && err != nil {
-			mcpErrors.Add(1)
+		mcpDuration.WithLabelValues(toolName).Observe(time.Since(start).Seconds())
+		if err != nil {
+			mcpErrors.WithLabelValues(toolName).Inc()
 		}
 		return result, err
 	}
@@ -144,7 +175,7 @@ func runHTTP(ctx context.Context, server *mcp.Server, promCli api.PrometheusAPI,
 	})
 	mux.HandleFunc("/healthz", healthzHandler)
 	mux.HandleFunc("/readyz", readyzHandler(promCli))
-	mux.Handle("/metrics", expvar.Handler())
+	mux.Handle("/metrics", promhttp.Handler())
 	mux.Handle("/mcp", mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server {
 		return server
 	}, nil))

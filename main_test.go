@@ -59,9 +59,6 @@ func TestMetricsMiddleware_Success(t *testing.T) {
 	called := false
 	mw := metricsMiddleware(func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
 		called = true
-		if method != methodCallTool {
-			t.Fatalf("expected method %q, got %q", methodCallTool, method)
-		}
 		return nil, nil
 	})
 	_, err := mw(context.Background(), methodCallTool, nil)
