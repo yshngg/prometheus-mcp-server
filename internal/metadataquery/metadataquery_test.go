@@ -134,6 +134,26 @@ func TestLabelNamesHandler_CacheHit(t *testing.T) {
 	}
 }
 
+func TestSeriesHandler_InvalidTime(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{
+		SeriesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]model.LabelSet, v1.Warnings, error) {
+			return []model.LabelSet{{"job": "test"}}, nil, nil
+		},
+	}
+	q := NewMetadataQuerier(mock)
+	_, result, err := q.SeriesHandler(context.Background(), nil, &SeriesArguments{
+		Match: []string{"up"},
+		Start: "bad-time",
+		End:   "also-bad",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.LabelSets) != 1 {
+		t.Fatalf("expected 1 label set, got %d", len(result.LabelSets))
+	}
+}
+
 func TestLabelValuesHandler_Success(t *testing.T) {
 	mock := &mockapi.PrometheusAPI{
 		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
@@ -220,6 +240,26 @@ func TestLabelValuesHandler_WithTimeAndLimit(t *testing.T) {
 	}
 	if len(result.LabelValues) != 2 {
 		t.Fatalf("expected 2 label values, got %d", len(result.LabelValues))
+	}
+}
+
+func TestLabelValuesHandler_InvalidTime(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{
+		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
+			return model.LabelValues{"v1"}, nil, nil
+		},
+	}
+	q := NewMetadataQuerier(mock)
+	_, result, err := q.LabelValuesHandler(context.Background(), nil, &LabelValuesArguments{
+		Label: "job",
+		Start: "bad",
+		End:   "bad",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.LabelValues) != 1 {
+		t.Fatalf("expected 1 value, got %d", len(result.LabelValues))
 	}
 }
 

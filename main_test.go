@@ -34,6 +34,17 @@ func TestUsageFor(t *testing.T) {
 	_ = usage
 }
 
+func TestUsageFor_EmptyDefault(t *testing.T) {
+	fs := flag.NewFlagSet("test", flag.PanicOnError)
+	fs.String("test-empty", "", "an empty default flag")
+	capture := captureStderr(t, func() {
+		usageFor(fs, "test")()
+	})
+	if !strings.Contains(capture, "VERSION") {
+		t.Fatal("expected output to contain version")
+	}
+}
+
 func TestUsageFor_WithVersion(t *testing.T) {
 	fs := flag.NewFlagSet("test", flag.PanicOnError)
 	fs.String("test-flag", "default", "a test flag")
