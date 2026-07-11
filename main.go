@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"text/tabwriter"
 	"time"
@@ -17,10 +16,10 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/yshngg/prometheus-mcp-server/internal/bindingblocks"
-	"github.com/yshngg/prometheus-mcp-server/internal/prometheus/api"
-	"github.com/yshngg/prometheus-mcp-server/internal/utils"
-	"github.com/yshngg/prometheus-mcp-server/internal/version"
+	"github.com/yshngg/prometheus-mcp-server/internal/binding"
+	"github.com/yshngg/prometheus-mcp-server/internal/buildinfo"
+	"github.com/yshngg/prometheus-mcp-server/internal/elicitation"
+	"github.com/yshngg/prometheus-mcp-server/internal/promapi"
 	"k8s.io/klog/v2"
 )
 
@@ -85,7 +84,7 @@ func metricsMiddleware(next mcp.MethodHandler) mcp.MethodHandler {
 
 		toolName := ""
 		if req != nil {
-			if callReq, ok := req.GetParams().(*mcp.CallToolParams); ok {
+			if callReq, ok := req.GetParams().(*mcp.CallToolParamsRaw); ok {
 				toolName = callReq.Name
 			}
 		}
@@ -125,7 +124,7 @@ func destructiveToolMiddleware(next mcp.MethodHandler) mcp.MethodHandler {
 			return next(ctx, method, req)
 		}
 
-		confirmed, err := utils.ConfirmDestructive(ctx, serverSession, params.Name,
+		confirmed, err := elicitation.ConfirmDestructive(ctx, serverSession, params.Name,
 			fmt.Sprintf("Confirm %q operation", params.Name))
 		if err != nil {
 			return next(ctx, method, req)
@@ -170,7 +169,7 @@ func main() {
 	}
 
 	if *printVersion {
-		fmt.Println(version.Info)
+		fmt.Println(buildinfo.Info)
 		klog.Flush()
 		os.Exit(0)
 	}
@@ -203,8 +202,7 @@ func main() {
 
 // newServer creates and configures the MCP server with all middleware,
 // tools, resources, and prompts bound to the Prometheus API client.
-// Extracted from main() so it can be tested independently.
-func newServer(promAddr string) (*mcp.Server, api.PrometheusAPI, error) {
+func newServer(promAddr string) (*mcp.Server, promapi.PrometheusAPI, error) {
 	transport := &http.Transport{
 		MaxIdleConns:        100,
 		MaxIdleConnsPerHost: 100,
@@ -216,14 +214,15 @@ func newServer(promAddr string) (*mcp.Server, api.PrometheusAPI, error) {
 		Timeout:   30 * time.Second,
 	}
 
-	promCli, err := api.New(promAddr, httpClient, nil)
+	promCli, err := promapi.New(promAddr, httpClient, nil)
 	if err != nil {
 		return nil, nil, err
 	}
+	promCli = promapi.NewCachingAPI(promCli, 30*time.Second)
 
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "prometheus-mcp-server",
-		Version: string(version.Info.Number),
+		Version: string(buildinfo.Info.Number),
 	}, &mcp.ServerOptions{
 		Instructions: "You are connected to a Prometheus monitoring instance. " +
 			"Use expression queries (instant-query, range-query) to explore time-series data. " +
@@ -233,14 +232,14 @@ func newServer(promAddr string) (*mcp.Server, api.PrometheusAPI, error) {
 		SchemaCache: mcp.NewSchemaCache(),
 		PageSize:    50,
 		CompletionHandler: func(ctx context.Context, req *mcp.CompleteRequest) (*mcp.CompleteResult, error) {
-			return handleCompletion(ctx, req, promCli)
+			return binding.HandleCompletion(ctx, req, promCli)
 		},
 	})
 	server.AddReceivingMiddleware(metricsMiddleware)
 	server.AddReceivingMiddleware(destructiveToolMiddleware)
 	server.AddSendingMiddleware(cacheHintMiddleware)
 
-	binder := bindingblocks.NewBinder(server, promCli)
+	binder := binding.NewBinder(server, promCli)
 	binder.Bind()
 	return server, promCli, nil
 }
@@ -251,7 +250,7 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte(`{"status":"ok"}`))
 }
 
-func readyzHandler(promCli api.PrometheusAPI) http.HandlerFunc {
+func readyzHandler(promCli promapi.PrometheusAPI) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 		defer cancel()
@@ -280,7 +279,7 @@ func authMiddleware(token string) func(http.Handler) http.Handler {
 	return auth.RequireBearerToken(verifier, nil)
 }
 
-func runHTTP(ctx context.Context, server *mcp.Server, promCli api.PrometheusAPI, addr string, authToken string) error {
+func runHTTP(ctx context.Context, server *mcp.Server, promCli promapi.PrometheusAPI, addr string, authToken string) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("pong"))
@@ -319,81 +318,6 @@ func runStdio(ctx context.Context, server *mcp.Server) error {
 	return server.Run(ctx, &mcp.StdioTransport{})
 }
 
-func handleCompletion(ctx context.Context, req *mcp.CompleteRequest, promCli api.PrometheusAPI) (*mcp.CompleteResult, error) {
-	val := req.Params.Argument.Value
-
-	switch req.Params.Ref.Type {
-	case "ref/resource":
-		uri := req.Params.Ref.URI
-		switch {
-		case strings.Contains(uri, "label/") && strings.Contains(uri, "/values"):
-			names, _, err := promCli.LabelNames(ctx, nil, time.Time{}, time.Time{})
-			if err != nil {
-				return nil, err
-			}
-			var matches []string
-			for _, n := range names {
-				if val == "" || strings.HasPrefix(n, val) {
-					matches = append(matches, n)
-				}
-			}
-			return &mcp.CompleteResult{
-				Completion: mcp.CompletionResultDetails{
-					Values:  matches,
-					HasMore: len(matches) > 20,
-					Total:   len(matches),
-				},
-			}, nil
-
-		case strings.Contains(uri, "query?query={promql}"):
-			values, _, err := promCli.LabelValues(ctx, "__name__", nil, time.Time{}, time.Time{})
-			if err != nil {
-				return nil, err
-			}
-			var matches []string
-			for _, v := range values {
-				s := string(v)
-				if val == "" || strings.HasPrefix(s, val) {
-					matches = append(matches, s)
-				}
-			}
-			return &mcp.CompleteResult{
-				Completion: mcp.CompletionResultDetails{
-					Values:  matches,
-					HasMore: len(matches) > 20,
-					Total:   len(matches),
-				},
-			}, nil
-		}
-
-	case "ref/prompt":
-		if req.Params.Ref.Name == "all-available-metrics" && req.Params.Argument.Name == "prefix" {
-			values, _, err := promCli.LabelValues(ctx, "__name__", nil, time.Time{}, time.Time{})
-			if err != nil {
-				return nil, err
-			}
-			var matches []string
-			for _, v := range values {
-				s := string(v)
-				if val == "" || strings.HasPrefix(s, val) {
-					matches = append(matches, s)
-				}
-			}
-			return &mcp.CompleteResult{
-				Completion: mcp.CompletionResultDetails{
-					Values:  matches,
-					HasMore: len(matches) > 20,
-					Total:   len(matches),
-				},
-			}, nil
-		}
-	}
-
-	return &mcp.CompleteResult{
-		Completion: mcp.CompletionResultDetails{Values: []string{}},
-	}, nil
-}
-
 func usageFor(fs *flag.FlagSet, short string) func() {
 	return func() {
 		fmt.Fprintf(os.Stderr, "Prometheus Model Context Protocol Server\n\n")
@@ -417,7 +341,7 @@ func usageFor(fs *flag.FlagSet, short string) func() {
 		}
 		fmt.Fprintf(os.Stderr, "\n")
 		fmt.Fprintf(os.Stderr, "VERSION\n")
-		fmt.Fprintf(os.Stderr, "  %s\n", version.Info.Number)
+		fmt.Fprintf(os.Stderr, "  %s\n", buildinfo.Info.Number)
 		fmt.Fprintf(os.Stderr, "\n")
 	}
 }

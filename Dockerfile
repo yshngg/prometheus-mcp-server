@@ -20,7 +20,7 @@ ARG TARGETARCH
 
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
     go build -o prometheus-mcp-server \
-    -ldflags="-s -w -X 'github.com/yshngg/prometheus-mcp-server/internal/version.Number=${VERSION_NUMBER}' -X 'github.com/yshngg/prometheus-mcp-server/internal/version.GitCommit=${GIT_COMMIT}' -X 'github.com/yshngg/prometheus-mcp-server/internal/version.BuildDate=${BUILD_DATE}'" \
+    -ldflags="-s -w -X 'github.com/yshngg/prometheus-mcp-server/internal/buildinfo.Number=${VERSION_NUMBER}' -X 'github.com/yshngg/prometheus-mcp-server/internal/buildinfo.GitCommit=${GIT_COMMIT}' -X 'github.com/yshngg/prometheus-mcp-server/internal/buildinfo.BuildDate=${BUILD_DATE}'" \
     .
 
 # Final image

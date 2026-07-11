@@ -1,4 +1,4 @@
-package api
+package promapi
 
 import (
 	"fmt"
@@ -11,12 +11,12 @@ import (
 const APIVersion = "/api/v1"
 
 type PrometheusAPI interface {
-	QueryingAPI
+	v1.API
 	ManagementAPI
 }
 
 type prometheusAPI struct {
-	QueryingAPI
+	v1.API
 	ManagementAPI
 }
 
@@ -31,7 +31,7 @@ func New(addr string, client *http.Client, roundTripper http.RoundTripper) (Prom
 	}
 
 	return &prometheusAPI{
-		QueryingAPI:   v1.NewAPI(cli),
+		API:           v1.NewAPI(cli),
 		ManagementAPI: NewManagementAPI(cli),
 	}, nil
 }

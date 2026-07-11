@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/yshngg/prometheus-mcp-server/internal/prometheus/api"
+	"github.com/yshngg/prometheus-mcp-server/internal/promapi"
 )
 
 type AlertmanagerDiscoverer interface {
@@ -12,12 +12,12 @@ type AlertmanagerDiscoverer interface {
 }
 
 // NewAlertmanagerDiscoverer returns an AlertmanagerDiscoverer backed by the provided PrometheusAPI.
-func NewAlertmanagerDiscoverer(api api.PrometheusAPI) AlertmanagerDiscoverer {
+func NewAlertmanagerDiscoverer(api promapi.PrometheusAPI) AlertmanagerDiscoverer {
 	return &alertmanagerDiscoverer{API: api}
 }
 
 type alertmanagerDiscoverer struct {
-	API api.PrometheusAPI
+	API promapi.PrometheusAPI
 }
 
 var _ AlertmanagerDiscoverer = &alertmanagerDiscoverer{}

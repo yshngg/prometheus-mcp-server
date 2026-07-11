@@ -5,12 +5,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/yshngg/prometheus-mcp-server/internal/mockapi"
+	"github.com/yshngg/prometheus-mcp-server/internal/mock"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 )
 
 func TestAlertQueryHandler_Success(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		AlertsFunc: func(ctx context.Context) (v1.AlertsResult, error) {
 			return v1.AlertsResult{Alerts: []v1.Alert{{Labels: nil}}}, nil
 		},
@@ -26,7 +26,7 @@ func TestAlertQueryHandler_Success(t *testing.T) {
 }
 
 func TestAlertQueryHandler_APIError(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		AlertsFunc: func(ctx context.Context) (v1.AlertsResult, error) {
 			return v1.AlertsResult{}, errors.New("api error")
 		},

@@ -1,4 +1,4 @@
-package bindingblocks
+package binding
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/yshngg/prometheus-mcp-server/internal/mockapi"
+	"github.com/yshngg/prometheus-mcp-server/internal/mock"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 )
@@ -27,7 +27,11 @@ func connectTestClient(t *testing.T, server *mcp.Server) *mcp.ClientSession {
 	if err != nil {
 		t.Fatalf("client connect: %v", err)
 	}
-	t.Cleanup(func() { _ = cs.Close() })
+	t.Cleanup(func() {
+		if err := cs.Close(); err != nil {
+			t.Logf("close client session: %v", err)
+		}
+	})
 	return cs
 }
 
@@ -36,7 +40,7 @@ func TestNewBinder(t *testing.T) {
 		Name:    "test",
 		Version: "1.0.0",
 	}, nil)
-	mock := &mockapi.PrometheusAPI{}
+	mock := &mock.PrometheusAPI{}
 	b := NewBinder(server, mock)
 	if b == nil {
 		t.Fatal("expected non-nil binder")
@@ -48,7 +52,7 @@ func TestBind_NoPanic(t *testing.T) {
 		Name:    "test",
 		Version: "1.0.0",
 	}, nil)
-	mock := &mockapi.PrometheusAPI{}
+	mock := &mock.PrometheusAPI{}
 	b := NewBinder(server, mock)
 
 	defer func() {
@@ -64,7 +68,7 @@ func TestAddResources_RegistersResources(t *testing.T) {
 		Name:    "test",
 		Version: "1.0.0",
 	}, nil)
-	mock := &mockapi.PrometheusAPI{}
+	mock := &mock.PrometheusAPI{}
 	b := &binder{server: server, api: mock}
 
 	defer func() {
@@ -80,7 +84,7 @@ func TestPrompts_NoPanic(t *testing.T) {
 		Name:    "test",
 		Version: "1.0.0",
 	}, nil)
-	mock := &mockapi.PrometheusAPI{}
+	mock := &mock.PrometheusAPI{}
 	b := &binder{server: server, api: mock}
 
 	defer func() {
@@ -93,7 +97,7 @@ func TestPrompts_NoPanic(t *testing.T) {
 
 func TestPrompts_AllAvailableMetrics(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
 			return model.LabelValues{"up", "node_cpu", "http_requests"}, nil, nil
 		},
@@ -123,7 +127,7 @@ func TestPrompts_AllAvailableMetrics(t *testing.T) {
 
 func TestPrompts_AllAvailableMetricsWithPrefix(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
 			return model.LabelValues{"up", "node_cpu", "node_memory", "http_requests"}, nil, nil
 		},
@@ -159,7 +163,7 @@ func TestPrompts_AllAvailableMetricsWithPrefix(t *testing.T) {
 
 func TestResources_ReadConfig(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		ConfigFunc: func(ctx context.Context) (v1.ConfigResult, error) {
 			return v1.ConfigResult{YAML: "global:\n  scrape_interval: 15s"}, nil
 		},
@@ -184,7 +188,7 @@ func TestResources_ReadConfig(t *testing.T) {
 
 func TestResources_ReadFlags(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		FlagsFunc: func(ctx context.Context) (v1.FlagsResult, error) {
 			return v1.FlagsResult{"storage.tsdb.retention.time": "15d"}, nil
 		},
@@ -209,7 +213,7 @@ func TestResources_ReadFlags(t *testing.T) {
 
 func TestResources_ReadBuildInfo(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		BuildinfoFunc: func(ctx context.Context) (v1.BuildinfoResult, error) {
 			return v1.BuildinfoResult{Version: "2.45.0", Revision: "abc123"}, nil
 		},
@@ -234,7 +238,7 @@ func TestResources_ReadBuildInfo(t *testing.T) {
 
 func TestResources_ReadResourceTemplateQuery_NoQuery(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
-	mock := &mockapi.PrometheusAPI{}
+	mock := &mock.PrometheusAPI{}
 	b := &binder{server: server, api: mock}
 	b.addResources()
 
@@ -249,7 +253,7 @@ func TestResources_ReadResourceTemplateQuery_NoQuery(t *testing.T) {
 
 func TestResources_ReadResourceTemplateQuery_APIFailure(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		QueryFunc: func(ctx context.Context, query string, ts time.Time, opts ...v1.Option) (model.Value, v1.Warnings, error) {
 			return nil, nil, errors.New("query failed")
 		},
@@ -268,7 +272,7 @@ func TestResources_ReadResourceTemplateQuery_APIFailure(t *testing.T) {
 
 func TestPrompts_AllAvailableMetricsAPIError(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
 			return nil, nil, errors.New("api error")
 		},
@@ -287,7 +291,7 @@ func TestPrompts_AllAvailableMetricsAPIError(t *testing.T) {
 
 func TestResources_ReadResourceTemplateLabelValues_InvalidURI(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
-	mock := &mockapi.PrometheusAPI{}
+	mock := &mock.PrometheusAPI{}
 	b := &binder{server: server, api: mock}
 	b.addResources()
 
@@ -302,7 +306,7 @@ func TestResources_ReadResourceTemplateLabelValues_InvalidURI(t *testing.T) {
 
 func TestResources_ReadResourceTemplateLabelValues_APIFailure(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
 			return nil, nil, errors.New("api error")
 		},
@@ -321,7 +325,7 @@ func TestResources_ReadResourceTemplateLabelValues_APIFailure(t *testing.T) {
 
 func TestResources_ReadResourceTemplateQuery(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		QueryFunc: func(ctx context.Context, query string, ts time.Time, opts ...v1.Option) (model.Value, v1.Warnings, error) {
 			return &model.Vector{
 				{Metric: model.Metric{"__name__": "up", "job": "test"}, Value: model.SampleValue(1), Timestamp: model.Now()},
@@ -348,7 +352,7 @@ func TestResources_ReadResourceTemplateQuery(t *testing.T) {
 
 func TestResources_ReadRuntimeInfo(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		RuntimeinfoFunc: func(ctx context.Context) (v1.RuntimeinfoResult, error) {
 			return v1.RuntimeinfoResult{CWD: "/prometheus", StartTime: time.Now()}, nil
 		},
@@ -373,7 +377,7 @@ func TestResources_ReadRuntimeInfo(t *testing.T) {
 
 func TestResources_ReadTSDBStats(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		TSDBFunc: func(ctx context.Context, opts ...v1.Option) (v1.TSDBResult, error) {
 			return v1.TSDBResult{HeadStats: v1.TSDBHeadStats{NumSeries: 100}}, nil
 		},
@@ -398,7 +402,7 @@ func TestResources_ReadTSDBStats(t *testing.T) {
 
 func TestResources_ReadWALReplayStats(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		WalReplayFunc: func(ctx context.Context) (v1.WalReplayStatus, error) {
 			return v1.WalReplayStatus{Current: 500, Max: 1000}, nil
 		},
@@ -423,7 +427,7 @@ func TestResources_ReadWALReplayStats(t *testing.T) {
 
 func TestResources_ReadResourceTemplateLabelValues(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
 			return model.LabelValues{"job1", "job2"}, nil, nil
 		},
@@ -443,5 +447,103 @@ func TestResources_ReadResourceTemplateLabelValues(t *testing.T) {
 	}
 	if !strings.Contains(res.Contents[0].Text, "job1") {
 		t.Fatalf("expected label values, got: %s", res.Contents[0].Text)
+	}
+}
+
+func TestHandleCompletion_LabelValues(t *testing.T) {
+	ctx := context.Background()
+	mock := &mock.PrometheusAPI{
+		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
+			return []string{"__name__", "job", "instance"}, nil, nil
+		},
+	}
+	req := &mcp.CompleteRequest{
+		Params: &mcp.CompleteParams{
+			Ref: &mcp.CompleteReference{Type: "ref/resource", URI: "prom:///api/v1/label/{name}/values"},
+			Argument: mcp.CompleteParamsArgument{Name: "name", Value: "ins"},
+		},
+	}
+
+	result, err := HandleCompletion(ctx, req, mock)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Completion.Values) != 1 || result.Completion.Values[0] != "instance" {
+		t.Fatalf("expected [instance], got %v", result.Completion.Values)
+	}
+}
+
+func TestHandleCompletion_QueryMetricNames(t *testing.T) {
+	ctx := context.Background()
+	mock := &mock.PrometheusAPI{
+		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
+			return model.LabelValues{"up", "node_cpu"}, nil, nil
+		},
+	}
+	req := &mcp.CompleteRequest{
+		Params: &mcp.CompleteParams{
+			Ref: &mcp.CompleteReference{Type: "ref/resource", URI: "prom:///api/v1/query?query={promql}"},
+			Argument: mcp.CompleteParamsArgument{Name: "promql", Value: "node"},
+		},
+	}
+
+	result, err := HandleCompletion(ctx, req, mock)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Completion.Values) != 1 || result.Completion.Values[0] != "node_cpu" {
+		t.Fatalf("expected [node_cpu], got %v", result.Completion.Values)
+	}
+}
+
+func TestHandleCompletion_Prompt(t *testing.T) {
+	ctx := context.Background()
+	mock := &mock.PrometheusAPI{
+		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
+			return model.LabelValues{"up", "http_requests"}, nil, nil
+		},
+	}
+	req := &mcp.CompleteRequest{
+		Params: &mcp.CompleteParams{
+			Ref: &mcp.CompleteReference{Type: "ref/prompt", Name: "all-available-metrics"},
+			Argument: mcp.CompleteParamsArgument{Name: "prefix", Value: "http"},
+		},
+	}
+
+	result, err := HandleCompletion(ctx, req, mock)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Completion.Values) != 1 || result.Completion.Values[0] != "http_requests" {
+		t.Fatalf("expected [http_requests], got %v", result.Completion.Values)
+	}
+}
+
+func TestHandleCompletion_NoMatch(t *testing.T) {
+	ctx := context.Background()
+	mock := &mock.PrometheusAPI{}
+	req := &mcp.CompleteRequest{
+		Params: &mcp.CompleteParams{
+			Ref: &mcp.CompleteReference{Type: "ref/resource", URI: "prom:///unknown"},
+			Argument: mcp.CompleteParamsArgument{Name: "x", Value: "y"},
+		},
+	}
+
+	result, err := HandleCompletion(ctx, req, mock)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Completion.Values) != 0 {
+		t.Fatalf("expected empty values, got %v", result.Completion.Values)
+	}
+}
+
+func TestMarshalJSON_Valid(t *testing.T) {
+	result, err := marshalJSON("test", map[string]string{"key": "value"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(result, "key") {
+		t.Fatalf("expected key in output, got %s", result)
 	}
 }

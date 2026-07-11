@@ -28,9 +28,9 @@ builds:
     ldflags:
       - -s
       - -w
-      - -X {{ .ModulePath }}/internal/version.Number={{ .Version }}
-      - -X {{ .ModulePath }}/internal/version.GitCommit={{ .Commit }}
-      - -X {{ .ModulePath }}/internal/version.BuildDate={{ .Date }}
+      - -X {{ .ModulePath }}/internal/buildinfo.Number={{ .Version }}
+      - -X {{ .ModulePath }}/internal/buildinfo.GitCommit={{ .Commit }}
+      - -X {{ .ModulePath }}/internal/buildinfo.BuildDate={{ .Date }}
     
     # GOOS list to build for.
     # For more info refer to: https://internal.go.dev/cmd/go#hdr-Environment_variables

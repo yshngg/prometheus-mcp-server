@@ -5,12 +5,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/yshngg/prometheus-mcp-server/internal/mockapi"
+	"github.com/yshngg/prometheus-mcp-server/internal/mock"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 )
 
 func TestAlertmanagerDiscoverHandler_Success(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		AlertManagersFunc: func(ctx context.Context) (v1.AlertManagersResult, error) {
 			return v1.AlertManagersResult{Active: []v1.AlertManager{{URL: "http://alertmanager:9093"}}}, nil
 		},
@@ -26,7 +26,7 @@ func TestAlertmanagerDiscoverHandler_Success(t *testing.T) {
 }
 
 func TestAlertmanagerDiscoverHandler_APIError(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		AlertManagersFunc: func(ctx context.Context) (v1.AlertManagersResult, error) {
 			return v1.AlertManagersResult{}, errors.New("api error")
 		},

@@ -1,4 +1,4 @@
-package bindingblocks
+package binding
 
 import (
 	"context"
@@ -52,12 +52,8 @@ func (b *binder) addStaticResources() {
 				if err != nil {
 					return "", err
 				}
-				data, err := json.MarshalIndent(result, "", "  ")
-				if err != nil {
-					return "", fmt.Errorf("marshal response: %w", err)
-				}
-				return string(data), nil
-			},
+			return marshalJSON("marshal response", result)
+		},
 		},
 		{
 			uri:         "prom:///runtime-info",
@@ -70,12 +66,8 @@ func (b *binder) addStaticResources() {
 				if err != nil {
 					return "", err
 				}
-				data, err := json.MarshalIndent(result, "", "  ")
-				if err != nil {
-					return "", fmt.Errorf("marshal response: %w", err)
-				}
-				return string(data), nil
-			},
+			return marshalJSON("marshal response", result)
+		},
 		},
 		{
 			uri:         "prom:///build-info",
@@ -88,12 +80,8 @@ func (b *binder) addStaticResources() {
 				if err != nil {
 					return "", err
 				}
-				data, err := json.MarshalIndent(result, "", "  ")
-				if err != nil {
-					return "", fmt.Errorf("marshal response: %w", err)
-				}
-				return string(data), nil
-			},
+			return marshalJSON("marshal response", result)
+		},
 		},
 		{
 			uri:         "prom:///tsdb-stats",
@@ -106,12 +94,8 @@ func (b *binder) addStaticResources() {
 				if err != nil {
 					return "", err
 				}
-				data, err := json.MarshalIndent(result, "", "  ")
-				if err != nil {
-					return "", fmt.Errorf("marshal response: %w", err)
-				}
-				return string(data), nil
-			},
+			return marshalJSON("marshal response", result)
+		},
 		},
 		{
 			uri:         "prom:///wal-replay-stats",
@@ -124,12 +108,8 @@ func (b *binder) addStaticResources() {
 				if err != nil {
 					return "", err
 				}
-				data, err := json.MarshalIndent(result, "", "  ")
-				if err != nil {
-					return "", fmt.Errorf("marshal response: %w", err)
-				}
-				return string(data), nil
-			},
+			return marshalJSON("marshal response", result)
+		},
 		},
 	}
 
@@ -245,4 +225,15 @@ func (b *binder) addResourceTemplates() {
 	})
 }
 
+// marshalJSON calls json.MarshalIndent with standard formatting and wraps
+// errors with a context prefix. The underlying types are always valid for
+// JSON serialization, so this function only exists to avoid repeating the
+// boilerplate at each call site.
+func marshalJSON(contextPrefix string, v any) (string, error) {
+	data, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", contextPrefix, err)
+	}
+	return string(data), nil
+}
 

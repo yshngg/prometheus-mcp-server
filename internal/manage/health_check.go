@@ -4,17 +4,9 @@ import (
 	"context"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/yshngg/prometheus-mcp-server/internal/promapi"
 )
 
-func (m *manager) HealthCheckHandler(ctx context.Context, request *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, *ManagementResult, error) {
-	result := &ManagementResult{
-		Success: true,
-	}
-
-	err := m.api.HealthCheck(ctx)
-	if err != nil {
-		result.Success = false
-		result.Message = err.Error()
-	}
-	return nil, result, nil
+func (m *manager) HealthCheckHandler(ctx context.Context, request *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, *promapi.Result, error) {
+	return nil, promapi.ResultOf(m.api.HealthCheck(ctx)), nil
 }
