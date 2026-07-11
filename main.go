@@ -30,6 +30,9 @@ func envOrDefault(key, fallback string) string {
 }
 
 func main() {
+	klog.LogToStderr(true)
+	defer klog.Flush()
+
 	fs := flag.NewFlagSet("prometheus-mcp-server", flag.ExitOnError)
 	klog.InitFlags(fs)
 	var (
@@ -41,12 +44,13 @@ func main() {
 	fs.Usage = usageFor(fs, "prometheus-mcp-server [flags]")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		klog.ErrorS(err, "parse args")
+		klog.Flush()
 		os.Exit(1)
 	}
-	klog.LogToStderr(true)
 
 	if *printVersion {
 		fmt.Println(version.Info)
+		klog.Flush()
 		os.Exit(0)
 	}
 
@@ -72,6 +76,7 @@ func main() {
 	promCli, err := api.New(*promAddr, httpClient, nil)
 	if err != nil {
 		klog.ErrorS(err, "new prometheus client")
+		klog.Flush()
 		os.Exit(1)
 	}
 
@@ -136,6 +141,7 @@ func runHTTP(ctx context.Context, server *mcp.Server, promCli api.PrometheusAPI,
 	klog.InfoS("Listening on http", "addr", addr)
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		klog.ErrorS(err, "listen and serve with Streamable HTTP transport")
+		klog.Flush()
 		os.Exit(1)
 	}
 }
@@ -165,6 +171,7 @@ func runSSE(ctx context.Context, server *mcp.Server, addr string) {
 	klog.InfoS("Listening on http", "addr", addr)
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		klog.ErrorS(err, "listen and serve with HTTP+SSE transport")
+		klog.Flush()
 		os.Exit(1)
 	}
 }
@@ -173,6 +180,7 @@ func runStdio(ctx context.Context, server *mcp.Server) {
 	klog.InfoS("Listening on stdio")
 	if err := server.Run(ctx, &mcp.StdioTransport{}); err != nil {
 		klog.ErrorS(err, "run server with stdio transport")
+		klog.Flush()
 		os.Exit(1)
 	}
 }
