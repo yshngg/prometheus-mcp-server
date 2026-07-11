@@ -30,9 +30,8 @@ func envOrDefault(key, fallback string) string {
 }
 
 func main() {
-	klog.InitFlags(nil)
-
 	fs := flag.NewFlagSet("prometheus-mcp-server", flag.ExitOnError)
+	klog.InitFlags(fs)
 	var (
 		promAddr      = fs.String("prom-addr", envOrDefault("PROM_ADDR", "http://localhost:9090/"), "The address of the Prometheus to connect to.")
 		mcpAddr       = fs.String("mcp-addr", envOrDefault("MCP_ADDR", "localhost:8080"), "The address of the MCP server to listen on.")

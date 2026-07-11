@@ -49,7 +49,7 @@ func TestAddResources_NoOp(t *testing.T) {
 
 func TestWithMetrics_Success(t *testing.T) {
 	handler := withMetrics[any, any](func(ctx context.Context, request *mcp.CallToolRequest, input any) (*mcp.CallToolResult, any, error) {
-		return nil, "ok", nil
+		return &mcp.CallToolResult{}, "ok", nil
 	})
 	result, out, err := handler(context.Background(), nil, nil)
 	if err != nil {
@@ -58,7 +58,9 @@ func TestWithMetrics_Success(t *testing.T) {
 	if out != "ok" {
 		t.Fatalf("expected 'ok', got %v", out)
 	}
-	_ = result
+	if result == nil {
+		t.Fatal("expected non-nil result")
+	}
 }
 
 func TestWithMetrics_Error(t *testing.T) {
