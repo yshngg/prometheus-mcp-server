@@ -2,13 +2,13 @@ package expressionquery
 
 import (
 	"context"
-	"log/slog"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"github.com/yshngg/prometheus-mcp-server/internal/utils"
+	"k8s.io/klog/v2"
 )
 
 type InstantQueryArguments struct {
@@ -30,7 +30,7 @@ func (q *expressionQuerier) InstantQueryHandler(ctx context.Context, request *mc
 	)
 	if input.Time != "" {
 		if ts, err = utils.ParseTime(input.Time); err != nil {
-			slog.Warn("parse time", "err", err)
+			klog.InfoS("parse time", "err", err)
 		}
 	}
 

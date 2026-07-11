@@ -24,7 +24,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
     .
 
 # Final image
-FROM alpine:3.24
+FROM gcr.io/distroless/static-debian12:nonroot
 
 LABEL org.opencontainers.image.source=https://github.com/yshngg/prometheus-mcp-server
 LABEL org.opencontainers.image.description="A Prometheus Model Context Protocol Server."

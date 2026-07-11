@@ -24,7 +24,7 @@ func TestRunHTTP_Ping(t *testing.T) {
 	defer cancel()
 
 	addr := "localhost:9876"
-	go runHTTP(ctx, server, addr)
+	go runHTTP(ctx, server, mock, addr)
 
 	time.Sleep(50 * time.Millisecond)
 
@@ -36,6 +36,87 @@ func TestRunHTTP_Ping(t *testing.T) {
 	body, _ := io.ReadAll(resp.Body)
 	if string(body) != "pong" {
 		t.Fatalf("expected 'pong', got %q", string(body))
+	}
+
+	cancel()
+	time.Sleep(50 * time.Millisecond)
+}
+
+func TestRunHTTP_Healthz(t *testing.T) {
+	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
+	mock := &mockapi.PrometheusAPI{}
+	binder := bindingblocks.NewBinder(server, mock)
+	binder.Bind()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	addr := "localhost:9879"
+	go runHTTP(ctx, server, mock, addr)
+
+	time.Sleep(50 * time.Millisecond)
+
+	resp, err := http.Get("http://" + addr + "/healthz")
+	if err != nil {
+		t.Fatalf("healthz request failed: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+
+	cancel()
+	time.Sleep(50 * time.Millisecond)
+}
+
+func TestRunHTTP_Readyz(t *testing.T) {
+	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
+	mock := &mockapi.PrometheusAPI{}
+	binder := bindingblocks.NewBinder(server, mock)
+	binder.Bind()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	addr := "localhost:9880"
+	go runHTTP(ctx, server, mock, addr)
+
+	time.Sleep(50 * time.Millisecond)
+
+	resp, err := http.Get("http://" + addr + "/readyz")
+	if err != nil {
+		t.Fatalf("readyz request failed: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+
+	cancel()
+	time.Sleep(50 * time.Millisecond)
+}
+
+func TestRunHTTP_Metrics(t *testing.T) {
+	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
+	mock := &mockapi.PrometheusAPI{}
+	binder := bindingblocks.NewBinder(server, mock)
+	binder.Bind()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	addr := "localhost:9881"
+	go runHTTP(ctx, server, mock, addr)
+
+	time.Sleep(50 * time.Millisecond)
+
+	resp, err := http.Get("http://" + addr + "/metrics")
+	if err != nil {
+		t.Fatalf("metrics request failed: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
 
 	cancel()
