@@ -7,14 +7,8 @@ import (
 )
 
 func (m *manager) ReloadHandler(ctx context.Context, request *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, *ManagementResult, error) {
-	result := &ManagementResult{
-		Success: true,
+	if err := m.api.Reload(ctx); err != nil {
+		return nil, &ManagementResult{Success: false, Message: err.Error()}, nil
 	}
-
-	err := m.api.Reload(ctx)
-	if err != nil {
-		result.Success = false
-		result.Message = err.Error()
-	}
-	return nil, result, nil
+	return nil, &ManagementResult{Success: true}, nil
 }

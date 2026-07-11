@@ -25,6 +25,33 @@ func TestInfoString(t *testing.T) {
 			},
 		},
 		{
+			name: "number only",
+			info: info{
+				Number:    "1.0.0",
+				GitCommit: "",
+				BuildDate: "",
+			},
+			expected: []string{"Version:  v1.0.0"},
+		},
+		{
+			name: "number and commit",
+			info: info{
+				Number:    "2.0.0",
+				GitCommit: "abc123",
+				BuildDate: "",
+			},
+			expected: []string{"Version:  v2.0.0", "Commit:   abc123"},
+		},
+		{
+			name: "number and build date",
+			info: info{
+				Number:    "3.0.0",
+				GitCommit: "",
+				BuildDate: "2025-01-01T00:00:00Z",
+			},
+			expected: []string{"Version:  v3.0.0", "Build:    2025-01-01T00:00:00Z"},
+		},
+		{
 			name: "missing fields",
 			info: info{
 				Number:    "",

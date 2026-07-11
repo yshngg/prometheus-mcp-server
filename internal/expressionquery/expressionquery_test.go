@@ -93,6 +93,32 @@ func TestRangeQueryHandler_Success(t *testing.T) {
 	}
 }
 
+func TestRangeQueryHandler_WithTimeoutAndLimit(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{
+		QueryRangeFunc: func(ctx context.Context, query string, r v1.Range, opts ...v1.Option) (model.Value, v1.Warnings, error) {
+			if len(opts) != 2 {
+				t.Fatalf("expected 2 options, got %d", len(opts))
+			}
+			return &model.Matrix{}, nil, nil
+		},
+	}
+	q := NewExpressionQuerier(mock)
+	_, result, err := q.RangeQueryHandler(context.Background(), nil, &RangeQueryArguments{
+		Query:   "up",
+		Start:   "2025-01-01T00:00:00Z",
+		End:     "2025-01-01T01:00:00Z",
+		Step:    15,
+		Timeout: 10 * time.Second,
+		Limit:   100,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil result")
+	}
+}
+
 func TestRangeQueryHandler_ZeroStep(t *testing.T) {
 	mock := &mockapi.PrometheusAPI{}
 	q := NewExpressionQuerier(mock)

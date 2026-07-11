@@ -28,8 +28,13 @@ prometheus-mcp-server --prom-addr="http://localhost:9090"
 |------|---------|-------------|
 | `-prom-addr` | `http://localhost:9090` | Prometheus server URL |
 | `-mcp-addr` | `localhost:8080` | MCP server listen address |
-| `-transport` | `stdio` | `stdio`, `http`, or `sse` |
- | `-version` | | Print version |
+| `-transport` | `stdio` | `stdio` or `http` |
+| `-auth-token` | `` | Bearer token for MCP endpoint authentication (optional) |
+| `-version` | | Print version |
+
+### Environment Variables
+
+All flags can be set via environment variables: `PROM_ADDR`, `MCP_ADDR`, `TRANSPORT`, `AUTH_TOKEN`.
 
 ### MCP Client Configuration
 
@@ -125,6 +130,13 @@ prometheus-mcp-server --transport=http --mcp-addr="localhost:8080"
 
 Then configure your client to use `http://localhost:8080/mcp`.
 
+For authenticated access, set `AUTH_TOKEN`:
+```bash
+AUTH_TOKEN=my-token prometheus-mcp-server --transport=http
+```
+
+Your client must then include `Authorization: Bearer my-token` in requests to `/mcp`.
+
 </details>
 
 ## Tools
@@ -135,11 +147,37 @@ Then configure your client to use `http://localhost:8080/mcp`.
 
 **Discovery:** `target-discovery`, `alert-query`, `rule-query`, `alertmanager-discovery`
 
-**Status:** `config`, `flags`, `build-information`, `runtime-information`, `tsdb-stats`, `wal-replay-stats`
-
 **TSDB Admin:** `tsdb-snapshot`, `delete-series`, `clean-tombstones`
 
 **Management:** `health-check`, `readiness-check`, `reload`, `quit`
+
+## Resources
+
+The server exposes Prometheus data as URI-addressable resources under the `prom:///` scheme:
+
+| URI | Description |
+|-----|-------------|
+| `prom:///config` | Currently loaded configuration (YAML) |
+| `prom:///flags` | Command-line flag values |
+| `prom:///runtime-info` | Runtime information |
+| `prom:///build-info` | Build information |
+| `prom:///tsdb-stats` | TSDB cardinality statistics |
+| `prom:///wal-replay-stats` | WAL replay state |
+
+### Resource Templates
+
+URI templates for dynamic data access:
+
+| Template | Description |
+|----------|-------------|
+| `prom:///api/v1/query?query={promql}` | Instant PromQL query result |
+| `prom:///api/v1/label/{name}/values` | Label values for a given label name |
+
+## Prompts
+
+| Name | Arguments | Description |
+|------|-----------|-------------|
+| `all-available-metrics` | `prefix` (optional) | Lists all metric names in the Prometheus instance |
 
 ## License
 

@@ -7,14 +7,8 @@ import (
 )
 
 func (m *manager) QuitHandler(ctx context.Context, request *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, *ManagementResult, error) {
-	result := &ManagementResult{
-		Success: true,
+	if err := m.api.Quit(ctx); err != nil {
+		return nil, &ManagementResult{Success: false, Message: err.Error()}, nil
 	}
-
-	err := m.api.Quit(ctx)
-	if err != nil {
-		result.Success = false
-		result.Message = err.Error()
-	}
-	return nil, result, nil
+	return nil, &ManagementResult{Success: true}, nil
 }

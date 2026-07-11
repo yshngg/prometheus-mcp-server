@@ -75,6 +75,49 @@ func TestDeleteSeriesHandler_APIError(t *testing.T) {
 	}
 }
 
+func TestDeleteSeriesHandler_InvalidTime(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{
+		DeleteSeriesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time) error {
+			return nil
+		},
+	}
+	a := NewTSDBAdmin(mock)
+	_, result, err := a.DeleteSeriesHandler(context.Background(), nil, &DeleteSeriesParams{
+		Match: []string{"up"},
+		Start: "invalid-time",
+		End:   "also-invalid",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !result.Success {
+		t.Fatal("expected success despite invalid time")
+	}
+}
+
+func TestDeleteSeriesHandler_WithTimeRange(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{
+		DeleteSeriesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time) error {
+			if startTime.IsZero() || endTime.IsZero() {
+				t.Fatal("expected non-zero time range")
+			}
+			return nil
+		},
+	}
+	a := NewTSDBAdmin(mock)
+	_, result, err := a.DeleteSeriesHandler(context.Background(), nil, &DeleteSeriesParams{
+		Match: []string{"up"},
+		Start: "2025-01-01T00:00:00Z",
+		End:   "2025-01-02T00:00:00Z",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !result.Success {
+		t.Fatal("expected success")
+	}
+}
+
 func TestDeleteSeriesHandler_NoMatch(t *testing.T) {
 	mock := &mockapi.PrometheusAPI{}
 	a := NewTSDBAdmin(mock)
