@@ -7,6 +7,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
 	"github.com/yshngg/prometheus-mcp-server/internal/utils"
 )
 
@@ -18,8 +19,8 @@ type LabelNamesArguments struct {
 }
 
 type LabelNamesResult struct {
-	LabelNames []string    `json:"names" jsonschema:"Names is a list of string label names."`
-	Warnings   v1.Warnings `json:"warnings,omitempty"`
+	LabelNames model.LabelNames `json:"names" jsonschema:"Names is a list of string label names."`
+	Warnings   v1.Warnings      `json:"warnings,omitempty"`
 }
 
 func (q *metadataQuerier) LabelNamesHandler(ctx context.Context, request *mcp.CallToolRequest, input *LabelNamesArguments) (*mcp.CallToolResult, *LabelNamesResult, error) {
@@ -51,7 +52,8 @@ func (q *metadataQuerier) LabelNamesHandler(ctx context.Context, request *mcp.Ca
 	}
 
 	result := &LabelNamesResult{}
-	if result.LabelNames, result.Warnings, err = q.API.LabelNames(
+	var names []string
+	if names, result.Warnings, err = q.API.LabelNames(
 		ctx,
 		input.Match,
 		start,
@@ -59,6 +61,10 @@ func (q *metadataQuerier) LabelNamesHandler(ctx context.Context, request *mcp.Ca
 		opts...,
 	); err != nil {
 		return nil, nil, err
+	}
+	result.LabelNames = make(model.LabelNames, len(names))
+	for i, n := range names {
+		result.LabelNames[i] = model.LabelName(n)
 	}
 
 	if len(input.Match) == 0 && input.Start == "" && input.End == "" {
