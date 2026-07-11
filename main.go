@@ -20,7 +20,28 @@ import (
 	"k8s.io/klog/v2"
 )
 
-const Schema = "prom"
+const (
+	Schema         = "prom"
+	methodCallTool = "tools/call"
+)
+
+var (
+	mcpRequests = expvar.NewInt("mcp_requests_total")
+	mcpErrors   = expvar.NewInt("mcp_errors_total")
+)
+
+func metricsMiddleware(next mcp.MethodHandler) mcp.MethodHandler {
+	return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		if method == methodCallTool {
+			mcpRequests.Add(1)
+		}
+		result, err := next(ctx, method, req)
+		if method == methodCallTool && err != nil {
+			mcpErrors.Add(1)
+		}
+		return result, err
+	}
+}
 
 func envOrDefault(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
@@ -61,6 +82,7 @@ func main() {
 		Name:    "prometheus-mcp-server",
 		Version: string(version.Info.Number),
 	}, nil)
+	server.AddReceivingMiddleware(metricsMiddleware)
 
 	transport := &http.Transport{
 		MaxIdleConns:        100,

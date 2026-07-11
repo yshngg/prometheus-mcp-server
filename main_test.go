@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/yshngg/prometheus-mcp-server/internal/mockapi"
 )
 
@@ -51,6 +52,49 @@ func TestUsageForOutput(t *testing.T) {
 	}
 	if !strings.Contains(capture, "...") {
 		t.Fatal("expected output to contain '...' for empty default value")
+	}
+}
+
+func TestMetricsMiddleware_Success(t *testing.T) {
+	called := false
+	mw := metricsMiddleware(func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		called = true
+		if method != methodCallTool {
+			t.Fatalf("expected method %q, got %q", methodCallTool, method)
+		}
+		return nil, nil
+	})
+	_, err := mw(context.Background(), methodCallTool, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !called {
+		t.Fatal("expected inner handler to be called")
+	}
+}
+
+func TestMetricsMiddleware_Error(t *testing.T) {
+	mw := metricsMiddleware(func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		return nil, errors.New("handler error")
+	})
+	_, err := mw(context.Background(), methodCallTool, nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestMetricsMiddleware_NonToolMethod(t *testing.T) {
+	called := false
+	mw := metricsMiddleware(func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		called = true
+		return nil, nil
+	})
+	_, err := mw(context.Background(), "ping", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !called {
+		t.Fatal("expected inner handler to be called")
 	}
 }
 

@@ -2,7 +2,6 @@ package bindingblocks
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -45,32 +44,6 @@ func TestAddResources_NoOp(t *testing.T) {
 		}
 	}()
 	b.addResources()
-}
-
-func TestWithMetrics_Success(t *testing.T) {
-	handler := withMetrics[any, any](func(ctx context.Context, request *mcp.CallToolRequest, input any) (*mcp.CallToolResult, any, error) {
-		return &mcp.CallToolResult{}, "ok", nil
-	})
-	result, out, err := handler(context.Background(), nil, nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if out != "ok" {
-		t.Fatalf("expected 'ok', got %v", out)
-	}
-	if result == nil {
-		t.Fatal("expected non-nil result")
-	}
-}
-
-func TestWithMetrics_Error(t *testing.T) {
-	handler := withMetrics[any, any](func(ctx context.Context, request *mcp.CallToolRequest, input any) (*mcp.CallToolResult, any, error) {
-		return nil, nil, errors.New("handler error")
-	})
-	_, _, err := handler(context.Background(), nil, nil)
-	if err == nil {
-		t.Fatal("expected error")
-	}
 }
 
 func TestAllAvailableMetricsHandler(t *testing.T) {

@@ -38,6 +38,17 @@ func TestRunHTTP_Ping(t *testing.T) {
 		t.Fatalf("expected 'pong', got %q", string(body))
 	}
 
+	for _, path := range []string{"/healthz", "/readyz", "/metrics"} {
+		resp, err = http.Get("http://" + addr + path)
+		if err != nil {
+			t.Fatalf("%s request failed: %v", path, err)
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 from %s, got %d", path, resp.StatusCode)
+		}
+	}
+
 	cancel()
 	time.Sleep(50 * time.Millisecond)
 }

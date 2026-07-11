@@ -1,9 +1,6 @@
 package bindingblocks
 
 import (
-	"context"
-	"expvar"
-
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/yshngg/prometheus-mcp-server/internal/alertmanagerdiscover"
 	"github.com/yshngg/prometheus-mcp-server/internal/alertquery"
@@ -16,22 +13,6 @@ import (
 	"github.com/yshngg/prometheus-mcp-server/internal/tsdbadmin"
 )
 
-var (
-	mcpRequests = expvar.NewInt("mcp_requests_total")
-	mcpErrors   = expvar.NewInt("mcp_errors_total")
-)
-
-func withMetrics[I, O any](handler mcp.ToolHandlerFor[I, O]) mcp.ToolHandlerFor[I, O] {
-	return func(ctx context.Context, request *mcp.CallToolRequest, input I) (*mcp.CallToolResult, O, error) {
-		mcpRequests.Add(1)
-		result, out, err := handler(ctx, request, input)
-		if err != nil {
-			mcpErrors.Add(1)
-		}
-		return result, out, err
-	}
-}
-
 // addTools registers Prometheus query tools with the MCP server.
 // It adds tools for expression queries (instant and range) and metadata queries.
 func (b *binder) addTools() {
@@ -42,12 +23,12 @@ func (b *binder) addTools() {
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "instant-query",
 			Description: "Evaluate an instant query at a single point in time.",
-		}, withMetrics(expressionQuerier.InstantQueryHandler))
+		}, expressionQuerier.InstantQueryHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "range-query",
 			Description: "Evaluate an expression query over a range of time.",
-		}, withMetrics(expressionQuerier.RangeQueryHandler))
+		}, expressionQuerier.RangeQueryHandler)
 	}
 
 	// Querying metadata
@@ -57,27 +38,27 @@ func (b *binder) addTools() {
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "find-series-by-labels",
 			Description: "Return the list of time series that match a certain label set.",
-		}, withMetrics(metadataQuerier.SeriesHandler))
+		}, metadataQuerier.SeriesHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "list-label-names",
 			Description: "Return a list of label names.",
-		}, withMetrics(metadataQuerier.LabelNamesHandler))
+		}, metadataQuerier.LabelNamesHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "list-label-values",
 			Description: "Return a list of label values for a provided label name.",
-		}, withMetrics(metadataQuerier.LabelValuesHandler))
+		}, metadataQuerier.LabelValuesHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "target-metadata-query",
 			Description: "Return metadata about metrics currently scraped from targets.",
-		}, withMetrics(metadataQuerier.TargetMetadataQueryHandler))
+		}, metadataQuerier.TargetMetadataQueryHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "metric-metadata-query",
 			Description: "Return metadata about metrics currently scraped from targets. However, it does not provide any target information.",
-		}, withMetrics(metadataQuerier.MetricsMetadataQueryHandler))
+		}, metadataQuerier.MetricsMetadataQueryHandler)
 	}
 
 	// Targets
@@ -87,7 +68,7 @@ func (b *binder) addTools() {
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "target-discovery",
 			Description: "Return an overview of the current state of the Prometheus target discovery.",
-		}, withMetrics(targetDiscoverer.TargetDiscoverHandler))
+		}, targetDiscoverer.TargetDiscoverHandler)
 	}
 
 	// Rules
@@ -97,7 +78,7 @@ func (b *binder) addTools() {
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "rule-query",
 			Description: "Return a list of alerting and recording rules that are currently loaded. In addition it returns the currently active alerts fired by the Prometheus instance of each alerting rule.",
-		}, withMetrics(ruleQuerier.RuleQueryHandler))
+		}, ruleQuerier.RuleQueryHandler)
 	}
 
 	// Alerts
@@ -107,7 +88,7 @@ func (b *binder) addTools() {
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "alert-query",
 			Description: "Return a list of all active alerts.",
-		}, withMetrics(alertQuerier.AlertQueryHandler))
+		}, alertQuerier.AlertQueryHandler)
 	}
 
 	// Alertmanagers
@@ -117,7 +98,7 @@ func (b *binder) addTools() {
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "alertmanager-discovery",
 			Description: "Return an overview of the current state of the Prometheus alertmanager discovery.",
-		}, withMetrics(alertmanagerDiscoverer.AlertmanagerDiscoverHandler))
+		}, alertmanagerDiscoverer.AlertmanagerDiscoverHandler)
 	}
 
 	// Status
@@ -127,32 +108,32 @@ func (b *binder) addTools() {
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "Config",
 			Description: "Return currently loaded configuration file.",
-		}, withMetrics(statusExposer.ConfigExposeHandler))
+		}, statusExposer.ConfigExposeHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "Flags",
 			Description: "Return flag values that Prometheus was configured with.",
-		}, withMetrics(statusExposer.FlagsExposeHandler))
+		}, statusExposer.FlagsExposeHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "runtime-information",
 			Description: "Return various runtime information properties about the Prometheus server.",
-		}, withMetrics(statusExposer.RuntimeInformationExposeHandler))
+		}, statusExposer.RuntimeInformationExposeHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "build-information",
 			Description: "Return various build information properties about the Prometheus server.",
-		}, withMetrics(statusExposer.BuildInformationExposeHandler))
+		}, statusExposer.BuildInformationExposeHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "tsdb-stats",
 			Description: "Return various cardinality statistics about the Prometheus TSDB.",
-		}, withMetrics(statusExposer.TSDBStatsExposeHandler))
+		}, statusExposer.TSDBStatsExposeHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "wal-replay-stats",
 			Description: "Return information about the WAL replay.",
-		}, withMetrics(statusExposer.WALReplayStatsExposeHandler))
+		}, statusExposer.WALReplayStatsExposeHandler)
 	}
 
 	// TSDB Admin APIs
@@ -162,17 +143,17 @@ func (b *binder) addTools() {
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "tsdb-snapshot",
 			Description: "Create a snapshot of all current data into snapshots/<datetime>-<rand> under the TSDB's data directory and returns the directory as response. It will optionally skip snapshotting data that is only present in the head block, and which has not yet been compacted to disk.",
-		}, withMetrics(tsdbAdmin.SnapshotHandler))
+		}, tsdbAdmin.SnapshotHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "delete-series",
 			Description: "Delete data for a selection of series in a time range. The actual data still exists on disk and is cleaned up in future compactions or can be explicitly cleaned up by hitting the Clean Tombstones endpoint. Not mentioning both start and end times would clear all the data for the matched series in the database.",
-		}, withMetrics(tsdbAdmin.DeleteSeriesHandler))
+		}, tsdbAdmin.DeleteSeriesHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "clean-tombstones",
 			Description: "Remove the deleted data from disk and cleans up the existing tombstones. This can be used after deleting series to free up space.",
-		}, withMetrics(tsdbAdmin.CleanTombstonesHandler))
+		}, tsdbAdmin.CleanTombstonesHandler)
 	}
 
 	// Management API
@@ -182,21 +163,21 @@ func (b *binder) addTools() {
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "health-check",
 			Description: "Check Prometheus health.",
-		}, withMetrics(manager.HealthCheckHandler))
+		}, manager.HealthCheckHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "readiness-check",
 			Description: "Check if Prometheus is ready to serve traffic (i.e. respond to queries).",
-		}, withMetrics(manager.ReadinessCheckHandler))
+		}, manager.ReadinessCheckHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "Reload",
 			Description: "Trigger a reload of the Prometheus configuration and rule files.",
-		}, withMetrics(manager.ReloadHandler))
+		}, manager.ReloadHandler)
 
 		mcp.AddTool(b.server, &mcp.Tool{
 			Name:        "Quit",
 			Description: "Trigger a graceful shutdown of Prometheus.",
-		}, withMetrics(manager.QuitHandler))
+		}, manager.QuitHandler)
 	}
 }
