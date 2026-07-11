@@ -3,11 +3,11 @@ package tsdbadmin
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/yshngg/prometheus-mcp-server/internal/utils"
+	"k8s.io/klog/v2"
 )
 
 type DeleteSeriesParams struct {
@@ -28,12 +28,12 @@ func (a *tsdbAdmin) DeleteSeriesHandler(ctx context.Context, request *mcp.CallTo
 	)
 	if input.Start != "" {
 		if start, err = utils.ParseTime(input.Start); err != nil {
-			slog.Warn("parse start time", "err", err)
+			klog.InfoS("parse start time", "err", err)
 		}
 	}
 	if input.End != "" {
 		if end, err = utils.ParseTime(input.End); err != nil {
-			slog.Warn("parse end time", "err", err)
+			klog.InfoS("parse end time", "err", err)
 		}
 	}
 

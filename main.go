@@ -5,7 +5,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,29 +13,96 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/yshngg/prometheus-mcp-server/internal/bindingblocks"
 	"github.com/yshngg/prometheus-mcp-server/internal/prometheus/api"
 	"github.com/yshngg/prometheus-mcp-server/internal/version"
+	"k8s.io/klog/v2"
 )
 
-const Schema = "prom"
+const (
+	Schema         = "prom"
+	methodCallTool = "tools/call"
+)
+
+var (
+	mcpRequests = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "mcp_requests_total",
+			Help: "Total number of MCP tool calls.",
+		},
+		[]string{"tool"},
+	)
+	mcpErrors = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "mcp_errors_total",
+			Help: "Total number of MCP tool call errors.",
+		},
+		[]string{"tool"},
+	)
+	mcpDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name: "mcp_request_duration_seconds",
+			Help: "Duration of MCP tool calls in seconds.",
+		},
+		[]string{"tool"},
+	)
+)
+
+func metricsMiddleware(next mcp.MethodHandler) mcp.MethodHandler {
+	return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		if method != methodCallTool {
+			return next(ctx, method, req)
+		}
+
+		toolName := ""
+		if req != nil {
+			if callReq, ok := req.GetParams().(*mcp.CallToolParams); ok {
+				toolName = callReq.Name
+			}
+		}
+
+		start := time.Now()
+		mcpRequests.WithLabelValues(toolName).Inc()
+		result, err := next(ctx, method, req)
+		mcpDuration.WithLabelValues(toolName).Observe(time.Since(start).Seconds())
+		if err != nil {
+			mcpErrors.WithLabelValues(toolName).Inc()
+		}
+		return result, err
+	}
+}
+
+func envOrDefault(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
 
 func main() {
+	klog.LogToStderr(true)
+	defer klog.Flush()
+
 	fs := flag.NewFlagSet("prometheus-mcp-server", flag.ExitOnError)
+	klog.InitFlags(fs)
 	var (
-		promAddr      = fs.String("prom-addr", "http://localhost:9090/", "The address of the Prometheus to connect to.")
-		mcpAddr       = fs.String("mcp-addr", "localhost:8080", "The address of the MCP server to listen on.")
-		transportType = fs.String("transport", "stdio", "Transport type (stdio, sse or http).\nThe mechanisms that handle the underlying communication between clients and servers.")
+		promAddr      = fs.String("prom-addr", envOrDefault("PROM_ADDR", "http://localhost:9090/"), "The address of the Prometheus to connect to.")
+		mcpAddr       = fs.String("mcp-addr", envOrDefault("MCP_ADDR", "localhost:8080"), "The address of the MCP server to listen on.")
+		transportType = fs.String("transport", envOrDefault("TRANSPORT", "stdio"), "Transport type (stdio, sse or http).\nThe mechanisms that handle the underlying communication between clients and servers.")
 		printVersion  = fs.Bool("version", false, "Print the version and exit.")
 	)
 	fs.Usage = usageFor(fs, "prometheus-mcp-server [flags]")
 	if err := fs.Parse(os.Args[1:]); err != nil {
-		slog.Error("parse args", "err", err)
+		klog.ErrorS(err, "parse args")
+		klog.Flush()
 		os.Exit(1)
 	}
 
 	if *printVersion {
 		fmt.Println(version.Info)
+		klog.Flush()
 		os.Exit(0)
 	}
 
@@ -47,6 +113,7 @@ func main() {
 		Name:    "prometheus-mcp-server",
 		Version: string(version.Info.Number),
 	}, nil)
+	server.AddReceivingMiddleware(metricsMiddleware)
 
 	transport := &http.Transport{
 		MaxIdleConns:        100,
@@ -61,7 +128,8 @@ func main() {
 
 	promCli, err := api.New(*promAddr, httpClient, nil)
 	if err != nil {
-		slog.Error("new prometheus client", "err", err)
+		klog.ErrorS(err, "new prometheus client")
+		klog.Flush()
 		os.Exit(1)
 	}
 
@@ -70,7 +138,7 @@ func main() {
 
 	switch *transportType {
 	case "http":
-		runHTTP(ctx, server, *mcpAddr)
+		runHTTP(ctx, server, promCli, *mcpAddr)
 	case "sse":
 		runSSE(ctx, server, *mcpAddr)
 	default:
@@ -78,11 +146,36 @@ func main() {
 	}
 }
 
-func runHTTP(ctx context.Context, server *mcp.Server, addr string) {
+func healthzHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(`{"status":"ok"}`))
+}
+
+func readyzHandler(promCli api.PrometheusAPI) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel()
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := promCli.HealthCheck(ctx); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"status":"not ready","reason":"upstream unhealthy"}`))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	}
+}
+
+func runHTTP(ctx context.Context, server *mcp.Server, promCli api.PrometheusAPI, addr string) {
 	mux := http.NewServeMux()
-		mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("pong"))
 	})
+	mux.HandleFunc("/healthz", healthzHandler)
+	mux.HandleFunc("/readyz", readyzHandler(promCli))
+	mux.Handle("/metrics", promhttp.Handler())
 	mux.Handle("/mcp", mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server {
 		return server
 	}, nil))
@@ -94,22 +187,23 @@ func runHTTP(ctx context.Context, server *mcp.Server, addr string) {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := srv.Shutdown(shutdownCtx); err != nil {
-			slog.Error("http server shutdown", "err", err)
+			klog.ErrorS(err, "http server shutdown")
 		}
 	}()
 
-	slog.Info("Listening on http://" + addr)
+	klog.InfoS("Listening on http", "addr", addr)
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		slog.Error("listen and serve with Streamable HTTP transport", "err", err)
+		klog.ErrorS(err, "listen and serve with Streamable HTTP transport")
+		klog.Flush()
 		os.Exit(1)
 	}
 }
 
 func runSSE(ctx context.Context, server *mcp.Server, addr string) {
-	slog.Warn("HTTP+SSE transport is deprecated. Please use Streamable HTTP instead.")
+	klog.InfoS("HTTP+SSE transport is deprecated. Please use Streamable HTTP instead.")
 
 	mux := http.NewServeMux()
-		mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("pong"))
 	})
 	mux.Handle("/mcp", mcp.NewSSEHandler(func(request *http.Request) *mcp.Server {
@@ -123,21 +217,23 @@ func runSSE(ctx context.Context, server *mcp.Server, addr string) {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := srv.Shutdown(shutdownCtx); err != nil {
-			slog.Error("http server shutdown", "err", err)
+			klog.ErrorS(err, "http server shutdown")
 		}
 	}()
 
-	slog.Info("Listening on http://" + addr)
+	klog.InfoS("Listening on http", "addr", addr)
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		slog.Error("listen and serve with HTTP+SSE transport", "err", err)
+		klog.ErrorS(err, "listen and serve with HTTP+SSE transport")
+		klog.Flush()
 		os.Exit(1)
 	}
 }
 
 func runStdio(ctx context.Context, server *mcp.Server) {
-	slog.Info("Listening on stdio")
+	klog.InfoS("Listening on stdio")
 	if err := server.Run(ctx, &mcp.StdioTransport{}); err != nil {
-		slog.Error("run server with stdio transport", "err", err)
+		klog.ErrorS(err, "run server with stdio transport")
+		klog.Flush()
 		os.Exit(1)
 	}
 }

@@ -2,10 +2,17 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"flag"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/yshngg/prometheus-mcp-server/internal/mockapi"
 )
 
 func TestUsageFor(t *testing.T) {
@@ -45,6 +52,98 @@ func TestUsageForOutput(t *testing.T) {
 	}
 	if !strings.Contains(capture, "...") {
 		t.Fatal("expected output to contain '...' for empty default value")
+	}
+}
+
+func TestMetricsMiddleware_Success(t *testing.T) {
+	called := false
+	mw := metricsMiddleware(func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		called = true
+		return nil, nil
+	})
+	_, err := mw(context.Background(), methodCallTool, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !called {
+		t.Fatal("expected inner handler to be called")
+	}
+}
+
+func TestMetricsMiddleware_Error(t *testing.T) {
+	mw := metricsMiddleware(func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		return nil, errors.New("handler error")
+	})
+	_, err := mw(context.Background(), methodCallTool, nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestMetricsMiddleware_NonToolMethod(t *testing.T) {
+	called := false
+	mw := metricsMiddleware(func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		called = true
+		return nil, nil
+	})
+	_, err := mw(context.Background(), "ping", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !called {
+		t.Fatal("expected inner handler to be called")
+	}
+}
+
+func TestEnvOrDefault(t *testing.T) {
+	t.Setenv("TEST_ENV_OR_DEFAULT", "env_value")
+	got := envOrDefault("TEST_ENV_OR_DEFAULT", "fallback")
+	if got != "env_value" {
+		t.Fatalf("expected env_value, got %s", got)
+	}
+}
+
+func TestEnvOrDefault_Fallback(t *testing.T) {
+	t.Setenv("TEST_ENV_OR_DEFAULT", "")
+	got := envOrDefault("TEST_ENV_OR_DEFAULT", "fallback")
+	if got != "fallback" {
+		t.Fatalf("expected fallback, got %s", got)
+	}
+}
+
+func TestHealthzHandler(t *testing.T) {
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/healthz", nil)
+	healthzHandler(w, r)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), `"status":"ok"`) {
+		t.Fatalf("expected ok status, got %s", w.Body.String())
+	}
+}
+
+func TestReadyzHandler_Success(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{}
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/readyz", nil)
+	readyzHandler(mock)(w, r)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
+
+func TestReadyzHandler_Unhealthy(t *testing.T) {
+	mock := &mockapi.PrometheusAPI{
+		HealthCheckFunc: func(ctx context.Context) error {
+			return errors.New("unhealthy")
+		},
+	}
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/readyz", nil)
+	readyzHandler(mock)(w, r)
+	if w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503, got %d", w.Code)
 	}
 }
 

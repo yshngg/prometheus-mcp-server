@@ -3,13 +3,13 @@ package expressionquery
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"github.com/yshngg/prometheus-mcp-server/internal/utils"
+	"k8s.io/klog/v2"
 )
 
 type RangeQueryArguments struct {
@@ -34,12 +34,12 @@ func (q *expressionQuerier) RangeQueryHandler(ctx context.Context, request *mcp.
 	)
 	if input.Start != "" {
 		if start, err = utils.ParseTime(input.Start); err != nil {
-			slog.Warn("parse start time", "err", err)
+			klog.InfoS("parse start time", "err", err)
 		}
 	}
 	if input.End != "" {
 		if end, err = utils.ParseTime(input.End); err != nil {
-			slog.Warn("parse end time", "err", err)
+			klog.InfoS("parse end time", "err", err)
 		}
 	}
 
