@@ -11,15 +11,6 @@ import (
 	"github.com/yshngg/prometheus-mcp-server/internal/utils"
 )
 
-const InstantQueryEndpoint = "/query"
-
-// URL query parameters:
-// query=<string>: Prometheus expression query string.
-// time=<rfc3339 | unix_timestamp>: Evaluation timestamp. Optional.
-// timeout=<duration>: Evaluation timeout. Optional. Defaults to and is capped by the value of the -query.timeout flag.
-// limit=<number>: Maximum number of returned series. Doesn’t affect scalars or strings but truncates the number of series for matrices and vectors. Optional. 0 means disabled.
-// The following example evaluates the expression up at the time 2015-07-01T20:10:51.781Z:
-// curl 'http://localhost:9090/api/v1/query?query=up&time=2015-07-01T20:10:51.781Z'
 type InstantQueryArguments struct {
 	Query   string        `json:"query" jsonschema:"<string>: Prometheus expression query string."`
 	Time    string        `json:"time,omitzero" jsonschema:"<rfc3339 | unix_timestamp>: Evaluation timestamp. Optional."`
@@ -37,8 +28,10 @@ func (q *expressionQuerier) InstantQueryHandler(ctx context.Context, request *mc
 		ts  time.Time
 		err error
 	)
-	if ts, err = utils.ParseTime(input.Time); err != nil {
-		slog.Warn("parse time", "err", err)
+	if input.Time != "" {
+		if ts, err = utils.ParseTime(input.Time); err != nil {
+			slog.Warn("parse time", "err", err)
+		}
 	}
 
 	opts := make([]v1.Option, 0)

@@ -11,17 +11,6 @@ import (
 	"github.com/yshngg/prometheus-mcp-server/internal/utils"
 )
 
-const LabelValuesEndpoint = "/label/<label_name>/values"
-
-// URL query parameters:
-// start=<rfc3339 | unix_timestamp>: Start timestamp. Optional.
-// end=<rfc3339 | unix_timestamp>: End timestamp. Optional.
-// match[]=<series_selector>: Repeated series selector argument that selects the series from which to read the label values. Optional.
-// limit=<number>: Maximum number of returned series. Optional. 0 means disabled.
-// This example queries for all label values for the http_status_code label:
-// curl http://localhost:9090/api/v1/label/http_status_code/values
-// This example queries for all label values for the http.status_code label:
-// curl http://localhost:9090/api/v1/label/U__http_2e_status_code/values
 type LabelValuesArguments struct {
 	Label string   `json:"label,omitzero" jsonschema:"<string>: Label names can optionally be encoded using the Values Escaping method, and is necessary if a name includes the / character. To encode a name in this way: 1. Prepend the label with U__. 2. Letters, numbers, and colons appear as-is. 3. Convert single underscores to double underscores. 4. For all other characters, use the UTF-8 codepoint as a hex integer, surrounded by underscores. So becomes _20_ and a . becomes _2e_."`
 	Start string   `json:"start,omitzero" jsonschema:"<rfc3339 | unix_timestamp>: Start timestamp. Optional."`
@@ -36,15 +25,27 @@ type LabelValuesResult struct {
 }
 
 func (q *metadataQuerier) LabelValuesHandler(ctx context.Context, request *mcp.CallToolRequest, input *LabelValuesArguments) (*mcp.CallToolResult, *LabelValuesResult, error) {
+	key := "labelvalues:" + input.Label
+	if len(input.Match) == 0 && input.Start == "" && input.End == "" {
+		if v, ok := q.cache.Get(key); ok {
+			result := v.(LabelValuesResult)
+			return nil, &result, nil
+		}
+	}
+
 	var (
 		start, end time.Time
 		err        error
 	)
-	if start, err = utils.ParseTime(input.Start); err != nil {
-		slog.Warn("parse start time", "err", err)
+	if input.Start != "" {
+		if start, err = utils.ParseTime(input.Start); err != nil {
+			slog.Warn("parse start time", "err", err)
+		}
 	}
-	if end, err = utils.ParseTime(input.End); err != nil {
-		slog.Warn("parse end time", "err", err)
+	if input.End != "" {
+		if end, err = utils.ParseTime(input.End); err != nil {
+			slog.Warn("parse end time", "err", err)
+		}
 	}
 
 	opts := make([]v1.Option, 0)
@@ -63,6 +64,10 @@ func (q *metadataQuerier) LabelValuesHandler(ctx context.Context, request *mcp.C
 	)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	if len(input.Match) == 0 && input.Start == "" && input.End == "" {
+		q.cache.Set(key, *result)
 	}
 	return nil, result, nil
 }

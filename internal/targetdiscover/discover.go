@@ -7,7 +7,6 @@ import (
 	"github.com/yshngg/prometheus-mcp-server/internal/prometheus/api"
 )
 
-const TargetDiscoverEndpoint = "/targets"
 
 type TargetDiscoverer interface {
 	TargetDiscoverHandler(ctx context.Context, request *mcp.CallToolRequest, input *TargetDiscoverParams) (*mcp.CallToolResult, *TargetDiscoverResult, error)

@@ -2,8 +2,10 @@ package statusexpose
 
 import (
 	"context"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/yshngg/prometheus-mcp-server/internal/cache"
 	"github.com/yshngg/prometheus-mcp-server/internal/prometheus/api"
 )
 
@@ -16,15 +18,16 @@ type StatusExposer interface {
 	WALReplayStatsExposeHandler(ctx context.Context, request *mcp.CallToolRequest, input *WALReplayStatsExposeParams) (*mcp.CallToolResult, *WALReplayStatsExposeResult, error)
 }
 
-// NewStatusExposer returns a StatusExposer implementation that uses the provided PrometheusAPI.
 func NewStatusExposer(api api.PrometheusAPI) StatusExposer {
 	return &statusExposer{
-		API: api,
+		API:   api,
+		cache: cache.New(60 * time.Second),
 	}
 }
 
 type statusExposer struct {
-	API api.PrometheusAPI
+	API   api.PrometheusAPI
+	cache *cache.Cache
 }
 
 var _ StatusExposer = &statusExposer{}

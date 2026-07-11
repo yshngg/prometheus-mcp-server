@@ -10,15 +10,6 @@ import (
 	"github.com/yshngg/prometheus-mcp-server/internal/utils"
 )
 
-const LabelNamesEndpoint = "/labels"
-
-// URL query parameters:
-// start=<rfc3339 | unix_timestamp>: Start timestamp. Optional.
-// end=<rfc3339 | unix_timestamp>: End timestamp. Optional.
-// match[]=<series_selector>: Repeated series selector argument that selects the series from which to read the label names. Optional.
-// limit=<number>: Maximum number of returned series. Optional. 0 means disabled.
-// Here is an example:
-// curl 'localhost:9090/api/v1/labels'
 type LabelNamesArguments struct {
 	Start string   `json:"start,omitzero" jsonschema:"<rfc3339 | unix_timestamp>: Start timestamp. Optional."`
 	End   string   `json:"end,omitzero" jsonschema:"<rfc3339 | unix_timestamp>: End timestamp. Optional."`
@@ -27,21 +18,31 @@ type LabelNamesArguments struct {
 }
 
 type LabelNamesResult struct {
-	// TODO: Replace []string with model.LabelNames (see https://github.com/prometheus/client_golang/pull/1850).
 	LabelNames []string    `json:"names" jsonschema:"Names is a list of string label names."`
 	Warnings   v1.Warnings `json:"warnings,omitempty"`
 }
 
 func (q *metadataQuerier) LabelNamesHandler(ctx context.Context, request *mcp.CallToolRequest, input *LabelNamesArguments) (*mcp.CallToolResult, *LabelNamesResult, error) {
+	if len(input.Match) == 0 && input.Start == "" && input.End == "" {
+		if v, ok := q.cache.Get("labelnames"); ok {
+			result := v.(LabelNamesResult)
+			return nil, &result, nil
+		}
+	}
+
 	var (
 		start, end time.Time
 		err        error
 	)
-	if start, err = utils.ParseTime(input.Start); err != nil {
-		slog.Warn("parse start time", "err", err)
+	if input.Start != "" {
+		if start, err = utils.ParseTime(input.Start); err != nil {
+			slog.Warn("parse start time", "err", err)
+		}
 	}
-	if end, err = utils.ParseTime(input.End); err != nil {
-		slog.Warn("parse end time", "err", err)
+	if input.End != "" {
+		if end, err = utils.ParseTime(input.End); err != nil {
+			slog.Warn("parse end time", "err", err)
+		}
 	}
 
 	opts := make([]v1.Option, 0)
@@ -58,6 +59,10 @@ func (q *metadataQuerier) LabelNamesHandler(ctx context.Context, request *mcp.Ca
 		opts...,
 	); err != nil {
 		return nil, nil, err
+	}
+
+	if len(input.Match) == 0 && input.Start == "" && input.End == "" {
+		q.cache.Set("labelnames", *result)
 	}
 	return nil, result, nil
 }
