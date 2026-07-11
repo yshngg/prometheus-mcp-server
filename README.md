@@ -140,8 +140,6 @@ Then configure your client to use `http://localhost:8080/mcp`.
 
 **Discovery:** `target-discovery`, `alert-query`, `rule-query`, `alertmanager-discovery`
 
-**Status:** `config`, `flags`, `build-information`, `runtime-information`, `tsdb-stats`, `wal-replay-stats`
-
 **TSDB Admin:** `tsdb-snapshot`, `delete-series`, `clean-tombstones`
 
 **Management:** `health-check`, `readiness-check`, `reload`, `quit`

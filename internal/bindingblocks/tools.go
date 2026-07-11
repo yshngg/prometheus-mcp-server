@@ -10,7 +10,6 @@ import (
 	"github.com/yshngg/prometheus-mcp-server/internal/manage"
 	"github.com/yshngg/prometheus-mcp-server/internal/metadataquery"
 	"github.com/yshngg/prometheus-mcp-server/internal/rulequery"
-	"github.com/yshngg/prometheus-mcp-server/internal/statusexpose"
 	"github.com/yshngg/prometheus-mcp-server/internal/targetdiscover"
 	"github.com/yshngg/prometheus-mcp-server/internal/tsdbadmin"
 )
@@ -166,64 +165,6 @@ func (b *binder) addTools() {
 		}, alertmanagerDiscoverer.AlertmanagerDiscoverHandler)
 	}
 
-	// Status
-	// Expose current Prometheus configuration.
-	{
-		statusExposer := statusexpose.NewStatusExposer(b.api)
-		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "config",
-			Description: "Return currently loaded configuration file.",
-			Annotations: &mcp.ToolAnnotations{
-				Title:        "Configuration",
-				ReadOnlyHint: true,
-			},
-		}, statusExposer.ConfigExposeHandler)
-
-		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "flags",
-			Description: "Return flag values that Prometheus was configured with.",
-			Annotations: &mcp.ToolAnnotations{
-				Title:        "Flags",
-				ReadOnlyHint: true,
-			},
-		}, statusExposer.FlagsExposeHandler)
-
-		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "runtime-information",
-			Description: "Return various runtime information properties about the Prometheus server.",
-			Annotations: &mcp.ToolAnnotations{
-				Title:        "Runtime Information",
-				ReadOnlyHint: true,
-			},
-		}, statusExposer.RuntimeInformationExposeHandler)
-
-		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "build-information",
-			Description: "Return various build information properties about the Prometheus server.",
-			Annotations: &mcp.ToolAnnotations{
-				Title:        "Build Information",
-				ReadOnlyHint: true,
-			},
-		}, statusExposer.BuildInformationExposeHandler)
-
-		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "tsdb-stats",
-			Description: "Return various cardinality statistics about the Prometheus TSDB.",
-			Annotations: &mcp.ToolAnnotations{
-				Title:        "TSDB Statistics",
-				ReadOnlyHint: true,
-			},
-		}, statusExposer.TSDBStatsExposeHandler)
-
-		mcp.AddTool(b.server, &mcp.Tool{
-			Name:        "wal-replay-stats",
-			Description: "Return information about the WAL replay.",
-			Annotations: &mcp.ToolAnnotations{
-				Title:        "WAL Replay Statistics",
-				ReadOnlyHint: true,
-			},
-		}, statusExposer.WALReplayStatsExposeHandler)
-	}
 
 	// TSDB Admin APIs
 	// Expose database functionalities for the advanced user.
