@@ -682,13 +682,21 @@ func TestDestructiveToolMiddleware_ElicitConfirmed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("server connect: %v", err)
 	}
-	defer func() { _ = ss.Close() }()
+	defer func() {
+		if err := ss.Close(); err != nil {
+			t.Logf("close server session: %v", err)
+		}
+	}()
 
 	cs, err := client.Connect(ctx, ct, nil)
 	if err != nil {
 		t.Fatalf("client connect: %v", err)
 	}
-	defer func() { _ = cs.Close() }()
+	defer func() {
+		if err := cs.Close(); err != nil {
+			t.Logf("close client session: %v", err)
+		}
+	}()
 
 	_, err = cs.CallTool(ctx, &mcp.CallToolParams{Name: "delete-series"})
 	if err != nil {
@@ -784,7 +792,11 @@ func TestEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("client connect: %v", err)
 	}
-	defer func() { _ = cs.Close() }()
+	defer func() {
+		if err := cs.Close(); err != nil {
+			t.Logf("close client session: %v", err)
+		}
+	}()
 
 	// ListTools
 	toolsResult, err := cs.ListTools(ctx, nil)
@@ -878,7 +890,9 @@ func captureStderr(t *testing.T, fn func()) string {
 
 	fn()
 
-	_ = w.Close()
+	if err := w.Close(); err != nil {
+		t.Logf("close pipe: %v", err)
+	}
 	var buf bytes.Buffer
 	if _, err := buf.ReadFrom(r); err != nil {
 		t.Fatalf("read: %v", err)

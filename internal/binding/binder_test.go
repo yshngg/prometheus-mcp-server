@@ -27,7 +27,11 @@ func connectTestClient(t *testing.T, server *mcp.Server) *mcp.ClientSession {
 	if err != nil {
 		t.Fatalf("client connect: %v", err)
 	}
-	t.Cleanup(func() { _ = cs.Close() })
+	t.Cleanup(func() {
+		if err := cs.Close(); err != nil {
+			t.Logf("close client session: %v", err)
+		}
+	})
 	return cs
 }
 

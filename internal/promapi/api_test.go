@@ -96,8 +96,16 @@ func TestCachingAPI_LabelNamesWithFilter(t *testing.T) {
 
 	ctx := context.Background()
 	// With match filter — should bypass cache
-	_, _, _ = caching.LabelNames(ctx, []string{"up"}, time.Time{}, time.Time{})
-	_, _, _ = caching.LabelNames(ctx, []string{"up"}, time.Time{}, time.Time{})
+	if names, _, err := caching.LabelNames(ctx, []string{"up"}, time.Time{}, time.Time{}); err != nil {
+		t.Fatalf("LabelNames: %v", err)
+	} else if len(names) == 0 {
+		t.Fatal("expected non-empty names")
+	}
+	if names, _, err := caching.LabelNames(ctx, []string{"up"}, time.Time{}, time.Time{}); err != nil {
+		t.Fatalf("LabelNames: %v", err)
+	} else if len(names) == 0 {
+		t.Fatal("expected non-empty names")
+	}
 	if inner.labelNamesCallCount != 2 {
 		t.Fatalf("expected 2 API calls (no cache with filter), got %d", inner.labelNamesCallCount)
 	}
@@ -133,8 +141,16 @@ func TestCachingAPI_LabelValues(t *testing.T) {
 	caching := NewCachingAPI(inner, time.Hour).(*CachingPrometheusAPI)
 
 	ctx := context.Background()
-	_, _, _ = caching.LabelValues(ctx, "job", nil, time.Time{}, time.Time{})
-	_, _, _ = caching.LabelValues(ctx, "job", nil, time.Time{}, time.Time{})
+	if values, _, err := caching.LabelValues(ctx, "job", nil, time.Time{}, time.Time{}); err != nil {
+		t.Fatalf("LabelValues: %v", err)
+	} else if len(values) != 1 {
+		t.Fatal("expected 1 value")
+	}
+	if values, _, err := caching.LabelValues(ctx, "job", nil, time.Time{}, time.Time{}); err != nil {
+		t.Fatalf("LabelValues: %v", err)
+	} else if len(values) != 1 {
+		t.Fatal("expected 1 value")
+	}
 	if calls != 1 {
 		t.Fatalf("expected 1 API call (cached), got %d", calls)
 	}
