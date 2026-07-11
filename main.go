@@ -17,9 +17,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/yshngg/prometheus-mcp-server/internal/binding"
-	"github.com/yshngg/prometheus-mcp-server/internal/promapi"
-	"github.com/yshngg/prometheus-mcp-server/internal/elicitation"
 	"github.com/yshngg/prometheus-mcp-server/internal/buildinfo"
+	"github.com/yshngg/prometheus-mcp-server/internal/elicitation"
+	"github.com/yshngg/prometheus-mcp-server/internal/promapi"
 	"k8s.io/klog/v2"
 )
 
@@ -202,7 +202,6 @@ func main() {
 
 // newServer creates and configures the MCP server with all middleware,
 // tools, resources, and prompts bound to the Prometheus API client.
-// Extracted from main() so it can be tested independently.
 func newServer(promAddr string) (*mcp.Server, promapi.PrometheusAPI, error) {
 	transport := &http.Transport{
 		MaxIdleConns:        100,
