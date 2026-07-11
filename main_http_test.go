@@ -32,7 +32,7 @@ func TestRunHTTP_Ping(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ping request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(resp.Body)
 	if string(body) != "pong" {
 		t.Fatalf("expected 'pong', got %q", string(body))
@@ -60,7 +60,7 @@ func TestRunSSE_Ping(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ping request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(resp.Body)
 	if string(body) != "pong" {
 		t.Fatalf("expected 'pong', got %q", string(body))
@@ -88,7 +88,7 @@ func TestRunSSE_Endpoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("mcp request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {

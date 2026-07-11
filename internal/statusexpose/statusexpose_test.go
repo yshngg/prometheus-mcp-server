@@ -197,8 +197,8 @@ func TestConfigExposeHandler_Cache(t *testing.T) {
 	}
 	e := NewStatusExposer(mock)
 
-	e.ConfigExposeHandler(context.Background(), nil, &ConfigExposeParams{})
-	e.ConfigExposeHandler(context.Background(), nil, &ConfigExposeParams{})
+	_, _, _ = e.ConfigExposeHandler(context.Background(), nil, &ConfigExposeParams{})
+	_, _, _ = e.ConfigExposeHandler(context.Background(), nil, &ConfigExposeParams{})
 	if calls != 1 {
 		t.Fatalf("expected 1 API call (cached), got %d", calls)
 	}

@@ -28,7 +28,7 @@ func TestManagementAPI_HealthCheck_Success(t *testing.T) {
 func TestManagementAPI_HealthCheck_NotOK(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		w.Write([]byte("not healthy"))
+		_, _ = w.Write([]byte("not healthy"))
 	}))
 	defer srv.Close()
 

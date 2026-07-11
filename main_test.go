@@ -60,7 +60,7 @@ func captureStderr(t *testing.T, fn func()) string {
 
 	fn()
 
-	w.Close()
+	_ = w.Close()
 	var buf bytes.Buffer
 	if _, err := buf.ReadFrom(r); err != nil {
 		t.Fatalf("read: %v", err)

@@ -86,8 +86,8 @@ func TestLabelNamesHandler_CacheHit(t *testing.T) {
 		return []string{"job", "instance"}, nil, nil
 	}
 
-	q.LabelNamesHandler(context.Background(), nil, &LabelNamesArguments{})
-	q.LabelNamesHandler(context.Background(), nil, &LabelNamesArguments{})
+	_, _, _ = q.LabelNamesHandler(context.Background(), nil, &LabelNamesArguments{})
+	_, _, _ = q.LabelNamesHandler(context.Background(), nil, &LabelNamesArguments{})
 	if calls != 1 {
 		t.Fatalf("expected 1 API call (cached), got %d", calls)
 	}

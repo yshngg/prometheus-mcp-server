@@ -80,8 +80,8 @@ func main() {
 
 func runHTTP(ctx context.Context, server *mcp.Server, addr string) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("pong"))
+		mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("pong"))
 	})
 	mux.Handle("/mcp", mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server {
 		return server
@@ -93,7 +93,9 @@ func runHTTP(ctx context.Context, server *mcp.Server, addr string) {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		srv.Shutdown(shutdownCtx)
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			slog.Error("http server shutdown", "err", err)
+		}
 	}()
 
 	slog.Info("Listening on http://" + addr)
@@ -107,8 +109,8 @@ func runSSE(ctx context.Context, server *mcp.Server, addr string) {
 	slog.Warn("HTTP+SSE transport is deprecated. Please use Streamable HTTP instead.")
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("pong"))
+		mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("pong"))
 	})
 	mux.Handle("/mcp", mcp.NewSSEHandler(func(request *http.Request) *mcp.Server {
 		return server
@@ -120,7 +122,9 @@ func runSSE(ctx context.Context, server *mcp.Server, addr string) {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		srv.Shutdown(shutdownCtx)
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			slog.Error("http server shutdown", "err", err)
+		}
 	}()
 
 	slog.Info("Listening on http://" + addr)
