@@ -96,38 +96,6 @@ With Docker:
 </details>
 
 <details>
-  <summary>VS Code / Copilot</summary>
-
-Add to MCP settings (`~/.vscode/mcp.json` or Settings → MCP):
-
-```json
-{
-  "servers": {
-    "prometheus": {
-      "command": "prometheus-mcp-server",
-      "args": ["--prom-addr", "http://localhost:9090"]
-    }
-  }
-}
-```
-
-</details>
-
-<details>
-  <summary>Cline</summary>
-
-Follow the <a href="https://docs.cline.bot/mcp/configuring-mcp-servers">Cline MCP guide</a> and use the standard config above.
-
-</details>
-
-<details>
-  <summary>Cursor</summary>
-
-Go to `Cursor Settings` → `MCP` → `New MCP Server`. Use the standard config above.
-
-</details>
-
-<details>
   <summary>OpenCode</summary>
 
 Add to `opencode.json` (<a href="https://opencode.ai/docs/mcp-servers">guide</a>):
