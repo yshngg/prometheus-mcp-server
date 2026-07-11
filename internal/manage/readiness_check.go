@@ -4,10 +4,11 @@ import (
 	"context"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/yshngg/prometheus-mcp-server/internal/promapi"
 )
 
-func (m *manager) ReadinessCheckHandler(ctx context.Context, request *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, *ManagementResult, error) {
-	result := &ManagementResult{
+func (m *manager) ReadinessCheckHandler(ctx context.Context, request *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, *promapi.Result, error) {
+	result := &promapi.Result{
 		Success: true,
 	}
 

@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"text/tabwriter"
 	"time"
@@ -233,7 +232,7 @@ func newServer(promAddr string) (*mcp.Server, promapi.PrometheusAPI, error) {
 		SchemaCache: mcp.NewSchemaCache(),
 		PageSize:    50,
 		CompletionHandler: func(ctx context.Context, req *mcp.CompleteRequest) (*mcp.CompleteResult, error) {
-			return handleCompletion(ctx, req, promCli)
+			return binding.HandleCompletion(ctx, req, promCli)
 		},
 	})
 	server.AddReceivingMiddleware(metricsMiddleware)
@@ -317,81 +316,6 @@ func runHTTP(ctx context.Context, server *mcp.Server, promCli promapi.Prometheus
 func runStdio(ctx context.Context, server *mcp.Server) error {
 	klog.InfoS("Listening on stdio")
 	return server.Run(ctx, &mcp.StdioTransport{})
-}
-
-func handleCompletion(ctx context.Context, req *mcp.CompleteRequest, promCli promapi.PrometheusAPI) (*mcp.CompleteResult, error) {
-	val := req.Params.Argument.Value
-
-	switch req.Params.Ref.Type {
-	case "ref/resource":
-		uri := req.Params.Ref.URI
-		switch {
-		case strings.Contains(uri, "label/") && strings.Contains(uri, "/values"):
-			names, _, err := promCli.LabelNames(ctx, nil, time.Time{}, time.Time{})
-			if err != nil {
-				return nil, err
-			}
-			var matches []string
-			for _, n := range names {
-				if val == "" || strings.HasPrefix(n, val) {
-					matches = append(matches, n)
-				}
-			}
-			return &mcp.CompleteResult{
-				Completion: mcp.CompletionResultDetails{
-					Values:  matches,
-					HasMore: len(matches) > 20,
-					Total:   len(matches),
-				},
-			}, nil
-
-		case strings.Contains(uri, "query?query={promql}"):
-			values, _, err := promCli.LabelValues(ctx, "__name__", nil, time.Time{}, time.Time{})
-			if err != nil {
-				return nil, err
-			}
-			var matches []string
-			for _, v := range values {
-				s := string(v)
-				if val == "" || strings.HasPrefix(s, val) {
-					matches = append(matches, s)
-				}
-			}
-			return &mcp.CompleteResult{
-				Completion: mcp.CompletionResultDetails{
-					Values:  matches,
-					HasMore: len(matches) > 20,
-					Total:   len(matches),
-				},
-			}, nil
-		}
-
-	case "ref/prompt":
-		if req.Params.Ref.Name == "all-available-metrics" && req.Params.Argument.Name == "prefix" {
-			values, _, err := promCli.LabelValues(ctx, "__name__", nil, time.Time{}, time.Time{})
-			if err != nil {
-				return nil, err
-			}
-			var matches []string
-			for _, v := range values {
-				s := string(v)
-				if val == "" || strings.HasPrefix(s, val) {
-					matches = append(matches, s)
-				}
-			}
-			return &mcp.CompleteResult{
-				Completion: mcp.CompletionResultDetails{
-					Values:  matches,
-					HasMore: len(matches) > 20,
-					Total:   len(matches),
-				},
-			}, nil
-		}
-	}
-
-	return &mcp.CompleteResult{
-		Completion: mcp.CompletionResultDetails{Values: []string{}},
-	}, nil
 }
 
 func usageFor(fs *flag.FlagSet, short string) func() {

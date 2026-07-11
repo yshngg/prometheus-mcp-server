@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/yshngg/prometheus-mcp-server/internal/promapi"
 	"github.com/yshngg/prometheus-mcp-server/internal/timeutil"
 	"k8s.io/klog/v2"
 )
@@ -16,12 +17,7 @@ type DeleteSeriesParams struct {
 	End   string   `json:"end,omitzero" jsonschema:"<rfc3339 | unix_timestamp>: End timestamp. Optional and defaults to maximum possible time."`
 }
 
-type DeleteSeriesResult struct {
-	Success bool   `json:"success" jsonschema:"Indicate the result of the management operation, true means success, false means failure"`
-	Message string `json:"message,omitempty" jsonschema:"Explanation message when the operation fails."`
-}
-
-func (a *tsdbAdmin) DeleteSeriesHandler(ctx context.Context, request *mcp.CallToolRequest, input *DeleteSeriesParams) (*mcp.CallToolResult, *DeleteSeriesResult, error) {
+func (a *tsdbAdmin) DeleteSeriesHandler(ctx context.Context, request *mcp.CallToolRequest, input *DeleteSeriesParams) (*mcp.CallToolResult, *promapi.Result, error) {
 	var (
 		start, end time.Time
 		err        error
@@ -41,7 +37,7 @@ func (a *tsdbAdmin) DeleteSeriesHandler(ctx context.Context, request *mcp.CallTo
 		return nil, nil, fmt.Errorf("at least one match[] selector is required")
 	}
 
-	result := &DeleteSeriesResult{Success: true}
+	result := &promapi.Result{Success: true}
 	if err = a.API.DeleteSeries(ctx, input.Match, start, end); err != nil {
 		result.Success = false
 		result.Message = err.Error()

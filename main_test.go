@@ -313,7 +313,7 @@ func TestHandleCompletion_ResourceLabelValues(t *testing.T) {
 		},
 	}
 
-	result, err := handleCompletion(context.Background(), req, mock)
+	result, err := binding.HandleCompletion(context.Background(), req, mock)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -341,7 +341,7 @@ func TestHandleCompletion_ResourceLabelValuesEmptyPrefix(t *testing.T) {
 		},
 	}
 
-	result, err := handleCompletion(context.Background(), req, mock)
+	result, err := binding.HandleCompletion(context.Background(), req, mock)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -372,7 +372,7 @@ func TestHandleCompletion_ResourceQueryMetricNames(t *testing.T) {
 		},
 	}
 
-	result, err := handleCompletion(context.Background(), req, mock)
+	result, err := binding.HandleCompletion(context.Background(), req, mock)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -403,7 +403,7 @@ func TestHandleCompletion_PromptMetricNames(t *testing.T) {
 		},
 	}
 
-	result, err := handleCompletion(context.Background(), req, mock)
+	result, err := binding.HandleCompletion(context.Background(), req, mock)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -428,7 +428,7 @@ func TestHandleCompletion_APIError(t *testing.T) {
 		},
 	}
 
-	_, err := handleCompletion(context.Background(), req, mock)
+	_, err := binding.HandleCompletion(context.Background(), req, mock)
 	if err == nil {
 		t.Fatal("expected error from API failure")
 	}
@@ -450,7 +450,7 @@ func TestHandleCompletion_APIErrorQuery(t *testing.T) {
 		},
 	}
 
-	_, err := handleCompletion(context.Background(), req, mock)
+	_, err := binding.HandleCompletion(context.Background(), req, mock)
 	if err == nil {
 		t.Fatal("expected error from API failure")
 	}
@@ -467,7 +467,7 @@ func TestHandleCompletion_NonMatchingPrompt(t *testing.T) {
 			Argument: mcp.CompleteParamsArgument{Name: "x", Value: "y"},
 		},
 	}
-	result, err := handleCompletion(context.Background(), req, mock)
+	result, err := binding.HandleCompletion(context.Background(), req, mock)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -491,7 +491,7 @@ func TestHandleCompletion_UnknownResource(t *testing.T) {
 		},
 	}
 
-	result, err := handleCompletion(context.Background(), req, mock)
+	result, err := binding.HandleCompletion(context.Background(), req, mock)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
