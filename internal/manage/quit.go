@@ -8,8 +8,5 @@ import (
 )
 
 func (m *manager) QuitHandler(ctx context.Context, request *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, *promapi.Result, error) {
-	if err := m.api.Quit(ctx); err != nil {
-		return nil, &promapi.Result{Success: false, Message: err.Error()}, nil
-	}
-	return nil, &promapi.Result{Success: true}, nil
+	return nil, promapi.ResultOf(m.api.Quit(ctx)), nil
 }

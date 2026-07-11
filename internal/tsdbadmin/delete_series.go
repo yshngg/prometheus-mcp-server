@@ -37,10 +37,5 @@ func (a *tsdbAdmin) DeleteSeriesHandler(ctx context.Context, request *mcp.CallTo
 		return nil, nil, fmt.Errorf("at least one match[] selector is required")
 	}
 
-	result := &promapi.Result{Success: true}
-	if err = a.API.DeleteSeries(ctx, input.Match, start, end); err != nil {
-		result.Success = false
-		result.Message = err.Error()
-	}
-	return nil, result, nil
+	return nil, promapi.ResultOf(a.API.DeleteSeries(ctx, input.Match, start, end)), nil
 }

@@ -24,13 +24,6 @@ type LabelNamesResult struct {
 }
 
 func (q *metadataQuerier) LabelNamesHandler(ctx context.Context, request *mcp.CallToolRequest, input *LabelNamesArguments) (*mcp.CallToolResult, *LabelNamesResult, error) {
-	if len(input.Match) == 0 && input.Start == "" && input.End == "" {
-		if v, ok := q.cache.Get("labelnames"); ok {
-			result := v.(LabelNamesResult)
-			return nil, &result, nil
-		}
-	}
-
 	var (
 		start, end time.Time
 		err        error
@@ -65,10 +58,6 @@ func (q *metadataQuerier) LabelNamesHandler(ctx context.Context, request *mcp.Ca
 	result.LabelNames = make(model.LabelNames, len(names))
 	for i, n := range names {
 		result.LabelNames[i] = model.LabelName(n)
-	}
-
-	if len(input.Match) == 0 && input.Start == "" && input.End == "" {
-		q.cache.Set("labelnames", *result)
 	}
 	return nil, result, nil
 }

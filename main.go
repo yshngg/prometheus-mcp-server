@@ -219,6 +219,7 @@ func newServer(promAddr string) (*mcp.Server, promapi.PrometheusAPI, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	promCli = promapi.NewCachingAPI(promCli, 30*time.Second)
 
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "prometheus-mcp-server",

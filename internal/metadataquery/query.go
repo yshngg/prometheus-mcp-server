@@ -2,10 +2,8 @@ package metadataquery
 
 import (
 	"context"
-	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/yshngg/prometheus-mcp-server/internal/cache"
 	"github.com/yshngg/prometheus-mcp-server/internal/promapi"
 )
 
@@ -19,15 +17,11 @@ type MetadataQuerier interface {
 }
 
 func NewMetadataQuerier(api promapi.PrometheusAPI) MetadataQuerier {
-	return &metadataQuerier{
-		API:   api,
-		cache: cache.New(30 * time.Second),
-	}
+	return &metadataQuerier{API: api}
 }
 
 type metadataQuerier struct {
-	API   promapi.PrometheusAPI
-	cache *cache.Cache
+	API promapi.PrometheusAPI
 }
 
 var _ MetadataQuerier = &metadataQuerier{}

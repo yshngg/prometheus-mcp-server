@@ -25,14 +25,6 @@ type LabelValuesResult struct {
 }
 
 func (q *metadataQuerier) LabelValuesHandler(ctx context.Context, request *mcp.CallToolRequest, input *LabelValuesArguments) (*mcp.CallToolResult, *LabelValuesResult, error) {
-	key := "labelvalues:" + input.Label
-	if len(input.Match) == 0 && input.Start == "" && input.End == "" {
-		if v, ok := q.cache.Get(key); ok {
-			result := v.(LabelValuesResult)
-			return nil, &result, nil
-		}
-	}
-
 	var (
 		start, end time.Time
 		err        error
@@ -64,10 +56,6 @@ func (q *metadataQuerier) LabelValuesHandler(ctx context.Context, request *mcp.C
 	)
 	if err != nil {
 		return nil, nil, err
-	}
-
-	if len(input.Match) == 0 && input.Start == "" && input.End == "" {
-		q.cache.Set(key, *result)
 	}
 	return nil, result, nil
 }

@@ -114,25 +114,6 @@ func TestLabelNamesHandler_InvalidTime(t *testing.T) {
 	}
 }
 
-func TestLabelNamesHandler_CacheHit(t *testing.T) {
-	mock := &mock.PrometheusAPI{
-		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
-			return []string{"job", "instance"}, nil, nil
-		},
-	}
-	q := NewMetadataQuerier(mock)
-	calls := 0
-	mock.LabelNamesFunc = func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
-		calls++
-		return []string{"job", "instance"}, nil, nil
-	}
-
-	_, _, _ = q.LabelNamesHandler(context.Background(), nil, &LabelNamesArguments{})
-	_, _, _ = q.LabelNamesHandler(context.Background(), nil, &LabelNamesArguments{})
-	if calls != 1 {
-		t.Fatalf("expected 1 API call (cached), got %d", calls)
-	}
-}
 
 func TestSeriesHandler_InvalidTime(t *testing.T) {
 	mock := &mock.PrometheusAPI{
@@ -243,25 +224,6 @@ func TestLabelValuesHandler_WithTimeAndLimit(t *testing.T) {
 	}
 }
 
-func TestLabelValuesHandler_CacheHit(t *testing.T) {
-	mock := &mock.PrometheusAPI{
-		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
-			return model.LabelValues{"v1"}, nil, nil
-		},
-	}
-	q := NewMetadataQuerier(mock)
-	calls := 0
-	mock.LabelValuesFunc = func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
-		calls++
-		return model.LabelValues{"v1"}, nil, nil
-	}
-
-	_, _, _ = q.LabelValuesHandler(context.Background(), nil, &LabelValuesArguments{Label: "job"})
-	_, _, _ = q.LabelValuesHandler(context.Background(), nil, &LabelValuesArguments{Label: "job"})
-	if calls != 1 {
-		t.Fatalf("expected 1 API call (cached), got %d", calls)
-	}
-}
 
 func TestLabelValuesHandler_InvalidTime(t *testing.T) {
 	mock := &mock.PrometheusAPI{

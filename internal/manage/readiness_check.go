@@ -8,14 +8,5 @@ import (
 )
 
 func (m *manager) ReadinessCheckHandler(ctx context.Context, request *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, *promapi.Result, error) {
-	result := &promapi.Result{
-		Success: true,
-	}
-
-	err := m.api.ReadinessCheck(ctx)
-	if err != nil {
-		result.Success = false
-		result.Message = err.Error()
-	}
-	return nil, result, nil
+	return nil, promapi.ResultOf(m.api.ReadinessCheck(ctx)), nil
 }
