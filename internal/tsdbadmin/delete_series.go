@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/yshngg/prometheus-mcp-server/internal/utils"
+	"github.com/yshngg/prometheus-mcp-server/internal/timeutil"
 	"k8s.io/klog/v2"
 )
 
@@ -27,12 +27,12 @@ func (a *tsdbAdmin) DeleteSeriesHandler(ctx context.Context, request *mcp.CallTo
 		err        error
 	)
 	if input.Start != "" {
-		if start, err = utils.ParseTime(input.Start); err != nil {
+		if start, err = timeutil.ParseTime(input.Start); err != nil {
 			klog.InfoS("parse start time", "err", err)
 		}
 	}
 	if input.End != "" {
-		if end, err = utils.ParseTime(input.End); err != nil {
+		if end, err = timeutil.ParseTime(input.End); err != nil {
 			klog.InfoS("parse end time", "err", err)
 		}
 	}

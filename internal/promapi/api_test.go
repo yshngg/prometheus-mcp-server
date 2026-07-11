@@ -1,4 +1,4 @@
-package api
+package promapi
 
 import (
 	"net/http"

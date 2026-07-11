@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/yshngg/prometheus-mcp-server/internal/prometheus/api"
+	"github.com/yshngg/prometheus-mcp-server/internal/promapi"
 )
 
 type TSDBAdmin interface {
@@ -14,14 +14,14 @@ type TSDBAdmin interface {
 }
 
 // NewTSDBAdmin returns a TSDBAdmin implementation that delegates Prometheus operations to the provided PrometheusAPI.
-func NewTSDBAdmin(api api.PrometheusAPI) TSDBAdmin {
+func NewTSDBAdmin(api promapi.PrometheusAPI) TSDBAdmin {
 	return &tsdbAdmin{
 		API: api,
 	}
 }
 
 type tsdbAdmin struct {
-	API api.PrometheusAPI
+	API promapi.PrometheusAPI
 }
 
 var _ TSDBAdmin = &tsdbAdmin{}

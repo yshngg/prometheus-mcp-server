@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/yshngg/prometheus-mcp-server/internal/prometheus/api"
+	"github.com/yshngg/prometheus-mcp-server/internal/promapi"
 )
 
 type ExpressionQuerier interface {
@@ -14,12 +14,12 @@ type ExpressionQuerier interface {
 
 // NewExpressionQuerier creates and returns an ExpressionQuerier backed by the provided PrometheusAPI.
 // The returned implementation delegates queries to the given API.
-func NewExpressionQuerier(api api.PrometheusAPI) ExpressionQuerier {
+func NewExpressionQuerier(api promapi.PrometheusAPI) ExpressionQuerier {
 	return &expressionQuerier{API: api}
 }
 
 type expressionQuerier struct {
-	API api.PrometheusAPI
+	API promapi.PrometheusAPI
 }
 
 var _ ExpressionQuerier = &expressionQuerier{}

@@ -1,4 +1,4 @@
-package bindingblocks
+package binding
 
 import (
 	"context"

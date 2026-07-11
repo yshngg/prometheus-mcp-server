@@ -6,7 +6,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/yshngg/prometheus-mcp-server/internal/cache"
-	"github.com/yshngg/prometheus-mcp-server/internal/prometheus/api"
+	"github.com/yshngg/prometheus-mcp-server/internal/promapi"
 )
 
 type MetadataQuerier interface {
@@ -18,7 +18,7 @@ type MetadataQuerier interface {
 	MetricsMetadataQueryHandler(ctx context.Context, request *mcp.CallToolRequest, input *MetricsMetadataQueryParams) (*mcp.CallToolResult, *MetricsMetadataQueryResult, error)
 }
 
-func NewMetadataQuerier(api api.PrometheusAPI) MetadataQuerier {
+func NewMetadataQuerier(api promapi.PrometheusAPI) MetadataQuerier {
 	return &metadataQuerier{
 		API:   api,
 		cache: cache.New(30 * time.Second),
@@ -26,7 +26,7 @@ func NewMetadataQuerier(api api.PrometheusAPI) MetadataQuerier {
 }
 
 type metadataQuerier struct {
-	API   api.PrometheusAPI
+	API   promapi.PrometheusAPI
 	cache *cache.Cache
 }
 

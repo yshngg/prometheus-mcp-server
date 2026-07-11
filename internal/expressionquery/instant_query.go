@@ -7,7 +7,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	"github.com/yshngg/prometheus-mcp-server/internal/utils"
+	"github.com/yshngg/prometheus-mcp-server/internal/timeutil"
 	"k8s.io/klog/v2"
 )
 
@@ -29,7 +29,7 @@ func (q *expressionQuerier) InstantQueryHandler(ctx context.Context, request *mc
 		err error
 	)
 	if input.Time != "" {
-		if ts, err = utils.ParseTime(input.Time); err != nil {
+		if ts, err = timeutil.ParseTime(input.Time); err != nil {
 			klog.InfoS("parse time", "err", err)
 		}
 	}

@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yshngg/prometheus-mcp-server/internal/mockapi"
+	"github.com/yshngg/prometheus-mcp-server/internal/mock"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 )
 
 func TestSnapshotHandler_Success(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		SnapshotFunc: func(ctx context.Context, skipHead bool) (v1.SnapshotResult, error) {
 			return v1.SnapshotResult{Name: "snapshot-20250101"}, nil
 		},
@@ -27,7 +27,7 @@ func TestSnapshotHandler_Success(t *testing.T) {
 }
 
 func TestSnapshotHandler_APIError(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		SnapshotFunc: func(ctx context.Context, skipHead bool) (v1.SnapshotResult, error) {
 			return v1.SnapshotResult{}, errors.New("api error")
 		},
@@ -40,7 +40,7 @@ func TestSnapshotHandler_APIError(t *testing.T) {
 }
 
 func TestDeleteSeriesHandler_Success(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		DeleteSeriesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time) error {
 			return nil
 		},
@@ -58,7 +58,7 @@ func TestDeleteSeriesHandler_Success(t *testing.T) {
 }
 
 func TestDeleteSeriesHandler_APIError(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		DeleteSeriesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time) error {
 			return errors.New("api error")
 		},
@@ -76,7 +76,7 @@ func TestDeleteSeriesHandler_APIError(t *testing.T) {
 }
 
 func TestDeleteSeriesHandler_InvalidTime(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		DeleteSeriesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time) error {
 			return nil
 		},
@@ -96,7 +96,7 @@ func TestDeleteSeriesHandler_InvalidTime(t *testing.T) {
 }
 
 func TestDeleteSeriesHandler_WithTimeRange(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		DeleteSeriesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time) error {
 			if startTime.IsZero() || endTime.IsZero() {
 				t.Fatal("expected non-zero time range")
@@ -119,7 +119,7 @@ func TestDeleteSeriesHandler_WithTimeRange(t *testing.T) {
 }
 
 func TestDeleteSeriesHandler_NoMatch(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{}
+	mock := &mock.PrometheusAPI{}
 	a := NewTSDBAdmin(mock)
 	_, _, err := a.DeleteSeriesHandler(context.Background(), nil, &DeleteSeriesParams{})
 	if err == nil {
@@ -128,7 +128,7 @@ func TestDeleteSeriesHandler_NoMatch(t *testing.T) {
 }
 
 func TestCleanTombstonesHandler_Success(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		CleanTombstonesFunc: func(ctx context.Context) error {
 			return nil
 		},
@@ -144,7 +144,7 @@ func TestCleanTombstonesHandler_Success(t *testing.T) {
 }
 
 func TestCleanTombstonesHandler_APIError(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		CleanTombstonesFunc: func(ctx context.Context) error {
 			return errors.New("api error")
 		},

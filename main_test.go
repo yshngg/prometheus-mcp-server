@@ -17,8 +17,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	"github.com/yshngg/prometheus-mcp-server/internal/bindingblocks"
-	"github.com/yshngg/prometheus-mcp-server/internal/mockapi"
+	"github.com/yshngg/prometheus-mcp-server/internal/binding"
+	"github.com/yshngg/prometheus-mcp-server/internal/mock"
 )
 
 func TestUsageFor(t *testing.T) {
@@ -189,7 +189,7 @@ func TestHealthzHandler(t *testing.T) {
 }
 
 func TestReadyzHandler_Success(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{}
+	mock := &mock.PrometheusAPI{}
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", "/readyz", nil)
 	readyzHandler(mock)(w, r)
@@ -199,7 +199,7 @@ func TestReadyzHandler_Success(t *testing.T) {
 }
 
 func TestReadyzHandler_Unhealthy(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		HealthCheckFunc: func(ctx context.Context) error {
 			return errors.New("unhealthy")
 		},
@@ -295,7 +295,7 @@ func TestAuthMiddleware_MissingToken(t *testing.T) {
 }
 
 func TestHandleCompletion_ResourceLabelValues(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
 			return []string{"__name__", "job", "instance", "namespace"}, nil, nil
 		},
@@ -323,7 +323,7 @@ func TestHandleCompletion_ResourceLabelValues(t *testing.T) {
 }
 
 func TestHandleCompletion_ResourceLabelValuesEmptyPrefix(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
 			return []string{"__name__", "job", "instance"}, nil, nil
 		},
@@ -351,7 +351,7 @@ func TestHandleCompletion_ResourceLabelValuesEmptyPrefix(t *testing.T) {
 }
 
 func TestHandleCompletion_ResourceQueryMetricNames(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
 			if label == "__name__" {
 				return model.LabelValues{"up", "node_cpu_seconds_total", "http_requests_total"}, nil, nil
@@ -382,7 +382,7 @@ func TestHandleCompletion_ResourceQueryMetricNames(t *testing.T) {
 }
 
 func TestHandleCompletion_PromptMetricNames(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
 			if label == "__name__" {
 				return model.LabelValues{"up", "node_cpu_seconds_total", "http_requests_total"}, nil, nil
@@ -413,7 +413,7 @@ func TestHandleCompletion_PromptMetricNames(t *testing.T) {
 }
 
 func TestHandleCompletion_APIError(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
 			return nil, nil, errors.New("api error")
 		},
@@ -435,7 +435,7 @@ func TestHandleCompletion_APIError(t *testing.T) {
 }
 
 func TestHandleCompletion_APIErrorQuery(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
 			return nil, nil, errors.New("api error")
 		},
@@ -457,7 +457,7 @@ func TestHandleCompletion_APIErrorQuery(t *testing.T) {
 }
 
 func TestHandleCompletion_NonMatchingPrompt(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{}
+	mock := &mock.PrometheusAPI{}
 	req := &mcp.CompleteRequest{
 		Params: &mcp.CompleteParams{
 			Ref: &mcp.CompleteReference{
@@ -477,7 +477,7 @@ func TestHandleCompletion_NonMatchingPrompt(t *testing.T) {
 }
 
 func TestHandleCompletion_UnknownResource(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{}
+	mock := &mock.PrometheusAPI{}
 	req := &mcp.CompleteRequest{
 		Params: &mcp.CompleteParams{
 			Ref: &mcp.CompleteReference{
@@ -701,8 +701,8 @@ func TestDestructiveToolMiddleware_ElicitConfirmed(t *testing.T) {
 
 func TestRunHTTP_Ping(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1.0"}, nil)
-	mock := &mockapi.PrometheusAPI{}
-	binder := bindingblocks.NewBinder(server, mock)
+	mock := &mock.PrometheusAPI{}
+	binder := binding.NewBinder(server, mock)
 	binder.Bind()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -748,7 +748,7 @@ func TestRunHTTP_Ping(t *testing.T) {
 // destructive middleware does not block non-destructive tools.
 func TestEndToEnd(t *testing.T) {
 	ctx := context.Background()
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		QueryFunc: func(ctx context.Context, query string, ts time.Time, opts ...v1.Option) (model.Value, v1.Warnings, error) {
 			return &model.Vector{
 				{Metric: model.Metric{"__name__": "up", "job": "test"}, Value: model.SampleValue(1)},
@@ -770,7 +770,7 @@ func TestEndToEnd(t *testing.T) {
 	server.AddReceivingMiddleware(destructiveToolMiddleware)
 	server.AddSendingMiddleware(cacheHintMiddleware)
 
-	binder := bindingblocks.NewBinder(server, mock)
+	binder := binding.NewBinder(server, mock)
 	binder.Bind()
 
 	st, ct := mcp.NewInMemoryTransports()

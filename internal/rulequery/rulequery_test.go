@@ -5,12 +5,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/yshngg/prometheus-mcp-server/internal/mockapi"
+	"github.com/yshngg/prometheus-mcp-server/internal/mock"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 )
 
 func TestRuleQueryHandler_Success(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		RulesFunc: func(ctx context.Context) (v1.RulesResult, error) {
 			return v1.RulesResult{Groups: []v1.RuleGroup{{Name: "test"}}}, nil
 		},
@@ -26,7 +26,7 @@ func TestRuleQueryHandler_Success(t *testing.T) {
 }
 
 func TestRuleQueryHandler_APIError(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		RulesFunc: func(ctx context.Context) (v1.RulesResult, error) {
 			return v1.RulesResult{}, errors.New("api error")
 		},

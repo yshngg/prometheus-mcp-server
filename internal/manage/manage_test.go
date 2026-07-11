@@ -5,11 +5,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/yshngg/prometheus-mcp-server/internal/mockapi"
+	"github.com/yshngg/prometheus-mcp-server/internal/mock"
 )
 
 func TestHealthCheckHandler_Success(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{}
+	mock := &mock.PrometheusAPI{}
 	m := NewManager(mock)
 	_, result, err := m.HealthCheckHandler(context.Background(), nil, struct{}{})
 	if err != nil {
@@ -21,7 +21,7 @@ func TestHealthCheckHandler_Success(t *testing.T) {
 }
 
 func TestHealthCheckHandler_Failure(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		HealthCheckFunc: func(ctx context.Context) error {
 			return errors.New("not healthy")
 		},
@@ -37,7 +37,7 @@ func TestHealthCheckHandler_Failure(t *testing.T) {
 }
 
 func TestReadinessCheckHandler_Success(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{}
+	mock := &mock.PrometheusAPI{}
 	m := NewManager(mock)
 	_, result, err := m.ReadinessCheckHandler(context.Background(), nil, struct{}{})
 	if err != nil {
@@ -49,7 +49,7 @@ func TestReadinessCheckHandler_Success(t *testing.T) {
 }
 
 func TestReadinessCheckHandler_Failure(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		ReadinessCheckFunc: func(ctx context.Context) error {
 			return errors.New("not ready")
 		},
@@ -65,7 +65,7 @@ func TestReadinessCheckHandler_Failure(t *testing.T) {
 }
 
 func TestReloadHandler_Success(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{}
+	mock := &mock.PrometheusAPI{}
 	m := NewManager(mock)
 	_, result, err := m.ReloadHandler(context.Background(), nil, struct{}{})
 	if err != nil {
@@ -77,7 +77,7 @@ func TestReloadHandler_Success(t *testing.T) {
 }
 
 func TestReloadHandler_Failure(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		ReloadFunc: func(ctx context.Context) error {
 			return errors.New("reload failed")
 		},
@@ -93,7 +93,7 @@ func TestReloadHandler_Failure(t *testing.T) {
 }
 
 func TestQuitHandler_Success(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{}
+	mock := &mock.PrometheusAPI{}
 	m := NewManager(mock)
 	_, result, err := m.QuitHandler(context.Background(), nil, struct{}{})
 	if err != nil {
@@ -105,7 +105,7 @@ func TestQuitHandler_Success(t *testing.T) {
 }
 
 func TestQuitHandler_Failure(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		QuitFunc: func(ctx context.Context) error {
 			return errors.New("quit failed")
 		},

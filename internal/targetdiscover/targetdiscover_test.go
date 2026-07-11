@@ -5,13 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/yshngg/prometheus-mcp-server/internal/mockapi"
+	"github.com/yshngg/prometheus-mcp-server/internal/mock"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 )
 
 func TestTargetDiscoverHandler_Success(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		TargetsFunc: func(ctx context.Context) (v1.TargetsResult, error) {
 			return v1.TargetsResult{
 				Active: []v1.ActiveTarget{
@@ -37,7 +37,7 @@ func TestTargetDiscoverHandler_Success(t *testing.T) {
 }
 
 func TestTargetDiscoverHandler_FilterByScrapePool(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		TargetsFunc: func(ctx context.Context) (v1.TargetsResult, error) {
 			return v1.TargetsResult{
 				Active: []v1.ActiveTarget{
@@ -60,7 +60,7 @@ func TestTargetDiscoverHandler_FilterByScrapePool(t *testing.T) {
 }
 
 func TestTargetDiscoverHandler_FilterByActive(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		TargetsFunc: func(ctx context.Context) (v1.TargetsResult, error) {
 			return v1.TargetsResult{
 				Active:  []v1.ActiveTarget{{Labels: model.LabelSet{"job": "test"}}},
@@ -84,7 +84,7 @@ func TestTargetDiscoverHandler_FilterByActive(t *testing.T) {
 }
 
 func TestTargetDiscoverHandler_FilterByDropped(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		TargetsFunc: func(ctx context.Context) (v1.TargetsResult, error) {
 			return v1.TargetsResult{
 				Active:  []v1.ActiveTarget{{Labels: model.LabelSet{"job": "test"}}},
@@ -105,7 +105,7 @@ func TestTargetDiscoverHandler_FilterByDropped(t *testing.T) {
 }
 
 func TestTargetDiscoverHandler_InvalidState(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		TargetsFunc: func(ctx context.Context) (v1.TargetsResult, error) {
 			return v1.TargetsResult{}, nil
 		},
@@ -120,7 +120,7 @@ func TestTargetDiscoverHandler_InvalidState(t *testing.T) {
 }
 
 func TestTargetDiscoverHandler_APIError(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		TargetsFunc: func(ctx context.Context) (v1.TargetsResult, error) {
 			return v1.TargetsResult{}, errors.New("api error")
 		},

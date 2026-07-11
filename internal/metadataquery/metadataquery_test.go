@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yshngg/prometheus-mcp-server/internal/mockapi"
+	"github.com/yshngg/prometheus-mcp-server/internal/mock"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 )
 
 func TestSeriesHandler_WithLimit(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		SeriesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]model.LabelSet, v1.Warnings, error) {
 			if len(opts) != 1 {
 				t.Fatalf("expected 1 option, got %d", len(opts))
@@ -34,7 +34,7 @@ func TestSeriesHandler_WithLimit(t *testing.T) {
 }
 
 func TestSeriesHandler_Success(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		SeriesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]model.LabelSet, v1.Warnings, error) {
 			return []model.LabelSet{{"job": "test"}}, nil, nil
 		},
@@ -52,7 +52,7 @@ func TestSeriesHandler_Success(t *testing.T) {
 }
 
 func TestSeriesHandler_APIError(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		SeriesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]model.LabelSet, v1.Warnings, error) {
 			return nil, nil, errors.New("api error")
 		},
@@ -67,7 +67,7 @@ func TestSeriesHandler_APIError(t *testing.T) {
 }
 
 func TestLabelNamesHandler_Success(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
 			return []string{"job", "instance"}, nil, nil
 		},
@@ -83,7 +83,7 @@ func TestLabelNamesHandler_Success(t *testing.T) {
 }
 
 func TestLabelNamesHandler_APIError(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
 			return nil, nil, errors.New("api error")
 		},
@@ -96,7 +96,7 @@ func TestLabelNamesHandler_APIError(t *testing.T) {
 }
 
 func TestLabelNamesHandler_InvalidTime(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
 			return []string{"job"}, nil, nil
 		},
@@ -115,7 +115,7 @@ func TestLabelNamesHandler_InvalidTime(t *testing.T) {
 }
 
 func TestLabelNamesHandler_CacheHit(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
 			return []string{"job", "instance"}, nil, nil
 		},
@@ -135,7 +135,7 @@ func TestLabelNamesHandler_CacheHit(t *testing.T) {
 }
 
 func TestSeriesHandler_InvalidTime(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		SeriesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]model.LabelSet, v1.Warnings, error) {
 			return []model.LabelSet{{"job": "test"}}, nil, nil
 		},
@@ -155,7 +155,7 @@ func TestSeriesHandler_InvalidTime(t *testing.T) {
 }
 
 func TestLabelValuesHandler_Success(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
 			return model.LabelValues{"value1", "value2"}, nil, nil
 		},
@@ -173,7 +173,7 @@ func TestLabelValuesHandler_Success(t *testing.T) {
 }
 
 func TestSeriesHandler_WithTimeAndLimit(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		SeriesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]model.LabelSet, v1.Warnings, error) {
 			if len(opts) != 1 {
 				t.Fatalf("expected 1 option, got %d", len(opts))
@@ -197,7 +197,7 @@ func TestSeriesHandler_WithTimeAndLimit(t *testing.T) {
 }
 
 func TestLabelNamesHandler_WithTimeAndLimit(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
 			if len(opts) != 1 {
 				t.Fatalf("expected 1 option, got %d", len(opts))
@@ -220,7 +220,7 @@ func TestLabelNamesHandler_WithTimeAndLimit(t *testing.T) {
 }
 
 func TestLabelValuesHandler_WithTimeAndLimit(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
 			if len(opts) != 1 {
 				t.Fatalf("expected 1 option, got %d", len(opts))
@@ -244,7 +244,7 @@ func TestLabelValuesHandler_WithTimeAndLimit(t *testing.T) {
 }
 
 func TestLabelValuesHandler_CacheHit(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
 			return model.LabelValues{"v1"}, nil, nil
 		},
@@ -264,7 +264,7 @@ func TestLabelValuesHandler_CacheHit(t *testing.T) {
 }
 
 func TestLabelValuesHandler_InvalidTime(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
 			return model.LabelValues{"v1"}, nil, nil
 		},
@@ -284,7 +284,7 @@ func TestLabelValuesHandler_InvalidTime(t *testing.T) {
 }
 
 func TestLabelValuesHandler_APIError(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
 			return nil, nil, errors.New("api error")
 		},
@@ -299,7 +299,7 @@ func TestLabelValuesHandler_APIError(t *testing.T) {
 }
 
 func TestTargetMetadataQueryHandler_Success(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		TargetsMetadataFunc: func(ctx context.Context, matchTarget, metric, limit string) ([]v1.MetricMetadata, error) {
 			return []v1.MetricMetadata{{Metric: "up", Help: "test help"}}, nil
 		},
@@ -317,7 +317,7 @@ func TestTargetMetadataQueryHandler_Success(t *testing.T) {
 }
 
 func TestTargetMetadataQueryHandler_APIError(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		TargetsMetadataFunc: func(ctx context.Context, matchTarget, metric, limit string) ([]v1.MetricMetadata, error) {
 			return nil, errors.New("api error")
 		},
@@ -330,7 +330,7 @@ func TestTargetMetadataQueryHandler_APIError(t *testing.T) {
 }
 
 func TestMetricsMetadataQueryHandler_Success(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		MetadataFunc: func(ctx context.Context, metric, limit string) (map[string][]v1.Metadata, error) {
 			return map[string][]v1.Metadata{"up": {{Type: "counter", Help: "test"}}}, nil
 		},
@@ -348,7 +348,7 @@ func TestMetricsMetadataQueryHandler_Success(t *testing.T) {
 }
 
 func TestMetricsMetadataQueryHandler_APIError(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		MetadataFunc: func(ctx context.Context, metric, limit string) (map[string][]v1.Metadata, error) {
 			return nil, errors.New("api error")
 		},

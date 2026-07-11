@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/yshngg/prometheus-mcp-server/internal/prometheus/api"
+	"github.com/yshngg/prometheus-mcp-server/internal/promapi"
 )
 
 type ManagementResult struct {
@@ -20,10 +20,10 @@ type Manager interface {
 }
 
 type manager struct {
-	api api.PrometheusAPI
+	api promapi.PrometheusAPI
 }
 
-func NewManager(api api.PrometheusAPI) Manager {
+func NewManager(api promapi.PrometheusAPI) Manager {
 	return &manager{api: api}
 }
 

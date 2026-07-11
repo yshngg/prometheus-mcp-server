@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yshngg/prometheus-mcp-server/internal/mockapi"
+	"github.com/yshngg/prometheus-mcp-server/internal/mock"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 )
 
 func TestInstantQueryHandler_Success(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		QueryFunc: func(ctx context.Context, query string, ts time.Time, opts ...v1.Option) (model.Value, v1.Warnings, error) {
 			if query != "up" {
 				t.Fatalf("expected query 'up', got %q", query)
@@ -33,7 +33,7 @@ func TestInstantQueryHandler_Success(t *testing.T) {
 }
 
 func TestInstantQueryHandler_APIError(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		QueryFunc: func(ctx context.Context, query string, ts time.Time, opts ...v1.Option) (model.Value, v1.Warnings, error) {
 			return nil, nil, errors.New("api error")
 		},
@@ -48,7 +48,7 @@ func TestInstantQueryHandler_APIError(t *testing.T) {
 }
 
 func TestInstantQueryHandler_WithTimeout(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		QueryFunc: func(ctx context.Context, query string, ts time.Time, opts ...v1.Option) (model.Value, v1.Warnings, error) {
 			if len(opts) != 1 {
 				t.Fatalf("expected 1 option, got %d", len(opts))
@@ -67,7 +67,7 @@ func TestInstantQueryHandler_WithTimeout(t *testing.T) {
 }
 
 func TestRangeQueryHandler_Success(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		QueryRangeFunc: func(ctx context.Context, query string, r v1.Range, opts ...v1.Option) (model.Value, v1.Warnings, error) {
 			if query != "up" {
 				t.Fatalf("expected query 'up', got %q", query)
@@ -94,7 +94,7 @@ func TestRangeQueryHandler_Success(t *testing.T) {
 }
 
 func TestRangeQueryHandler_WithTimeoutAndLimit(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		QueryRangeFunc: func(ctx context.Context, query string, r v1.Range, opts ...v1.Option) (model.Value, v1.Warnings, error) {
 			if len(opts) != 2 {
 				t.Fatalf("expected 2 options, got %d", len(opts))
@@ -120,7 +120,7 @@ func TestRangeQueryHandler_WithTimeoutAndLimit(t *testing.T) {
 }
 
 func TestRangeQueryHandler_ZeroStep(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{}
+	mock := &mock.PrometheusAPI{}
 	q := NewExpressionQuerier(mock)
 	_, _, err := q.RangeQueryHandler(context.Background(), nil, &RangeQueryArguments{
 		Query: "up",
@@ -132,7 +132,7 @@ func TestRangeQueryHandler_ZeroStep(t *testing.T) {
 }
 
 func TestInstantQueryHandler_InvalidTime(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		QueryFunc: func(ctx context.Context, query string, ts time.Time, opts ...v1.Option) (model.Value, v1.Warnings, error) {
 			return &model.Scalar{}, nil, nil
 		},
@@ -148,7 +148,7 @@ func TestInstantQueryHandler_InvalidTime(t *testing.T) {
 }
 
 func TestRangeQueryHandler_InvalidTime(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		QueryRangeFunc: func(ctx context.Context, query string, r v1.Range, opts ...v1.Option) (model.Value, v1.Warnings, error) {
 			return &model.Matrix{}, nil, nil
 		},
@@ -166,7 +166,7 @@ func TestRangeQueryHandler_InvalidTime(t *testing.T) {
 }
 
 func TestRangeQueryHandler_APIError(t *testing.T) {
-	mock := &mockapi.PrometheusAPI{
+	mock := &mock.PrometheusAPI{
 		QueryRangeFunc: func(ctx context.Context, query string, r v1.Range, opts ...v1.Option) (model.Value, v1.Warnings, error) {
 			return nil, nil, errors.New("api error")
 		},
