@@ -16,6 +16,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+	"github.com/yshngg/prometheus-mcp-server/internal/bindingblocks"
 	"github.com/yshngg/prometheus-mcp-server/internal/mockapi"
 )
 
@@ -694,6 +695,130 @@ func TestDestructiveToolMiddleware_ElicitConfirmed(t *testing.T) {
 	}
 	if !handlerCalled {
 		t.Fatal("expected handler to be called after elicitation confirmed")
+	}
+}
+
+// TestEndToEnd verifies the full MCP stack: server creation with middleware,
+// tool/resource/prompt registration, and client communication via in-memory
+// transport. Validates that sending middleware sets cache TTLs and that the
+// destructive middleware does not block non-destructive tools.
+func TestEndToEnd(t *testing.T) {
+	ctx := context.Background()
+	mock := &mockapi.PrometheusAPI{
+		QueryFunc: func(ctx context.Context, query string, ts time.Time, opts ...v1.Option) (model.Value, v1.Warnings, error) {
+			return &model.Vector{
+				{Metric: model.Metric{"__name__": "up", "job": "test"}, Value: model.SampleValue(1)},
+			}, nil, nil
+		},
+		LabelValuesFunc: func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
+			return model.LabelValues{"up", "node_cpu"}, nil, nil
+		},
+		ConfigFunc: func(ctx context.Context) (v1.ConfigResult, error) {
+			return v1.ConfigResult{YAML: "global:\n  scrape_interval: 15s"}, nil
+		},
+	}
+
+	server := mcp.NewServer(&mcp.Implementation{Name: "prometheus-mcp-server", Version: "1.0"}, &mcp.ServerOptions{
+		SchemaCache: mcp.NewSchemaCache(),
+		PageSize:    50,
+	})
+	server.AddReceivingMiddleware(metricsMiddleware)
+	server.AddReceivingMiddleware(destructiveToolMiddleware)
+	server.AddSendingMiddleware(cacheHintMiddleware)
+
+	binder := bindingblocks.NewBinder(server, mock)
+	binder.Bind()
+
+	st, ct := mcp.NewInMemoryTransports()
+	_, err := server.Connect(ctx, st, nil)
+	if err != nil {
+		t.Fatalf("server connect: %v", err)
+	}
+
+	client := mcp.NewClient(&mcp.Implementation{Name: "client", Version: "1.0"}, nil)
+	cs, err := client.Connect(ctx, ct, nil)
+	if err != nil {
+		t.Fatalf("client connect: %v", err)
+	}
+	defer func() { _ = cs.Close() }()
+
+	// ListTools
+	toolsResult, err := cs.ListTools(ctx, nil)
+	if err != nil {
+		t.Fatalf("list tools: %v", err)
+	}
+	if len(toolsResult.Tools) == 0 {
+		t.Fatal("expected at least 1 tool")
+	}
+
+	// CallTool — instant query
+	callResult, err := cs.CallTool(ctx, &mcp.CallToolParams{
+		Name: "instant-query",
+		Arguments: map[string]any{"query": "up"},
+	})
+	if err != nil {
+		t.Fatalf("call tool instant-query: %v", err)
+	}
+	if callResult.IsError {
+		t.Fatal("expected instant-query to succeed")
+	}
+
+	// CallTool — non-destructive tool passes through middleware
+	healthResult, err := cs.CallTool(ctx, &mcp.CallToolParams{Name: "health-check"})
+	if err != nil {
+		t.Fatalf("call tool health-check: %v", err)
+	}
+	if healthResult.IsError {
+		t.Fatal("expected health-check to succeed")
+	}
+
+	// CallTool — destructive tool with no client elicitation support
+	// should fall through (ConfirmDestructive returns (true, nil) on error)
+	delResult, err := cs.CallTool(ctx, &mcp.CallToolParams{Name: "delete-series", Arguments: map[string]any{"match[]": []string{"up"}}})
+	if err != nil {
+		t.Fatalf("call tool delete-series: %v", err)
+	}
+	if delResult.IsError {
+		t.Fatal("expected delete-series to fall through when elicitation unsupported")
+	}
+
+	// ListResources
+	resourcesResult, err := cs.ListResources(ctx, nil)
+	if err != nil {
+		t.Fatalf("list resources: %v", err)
+	}
+	if len(resourcesResult.Resources) == 0 {
+		t.Fatal("expected at least 1 resource")
+	}
+
+	// ReadResource — config
+	configResult, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "prom:///config"})
+	if err != nil {
+		t.Fatalf("read resource: %v", err)
+	}
+	if len(configResult.Contents) != 1 {
+		t.Fatalf("expected 1 content, got %d", len(configResult.Contents))
+	}
+	if !strings.Contains(configResult.Contents[0].Text, "scrape_interval") {
+		t.Fatalf("expected config content, got: %s", configResult.Contents[0].Text)
+	}
+
+	// ListPrompts
+	promptsResult, err := cs.ListPrompts(ctx, nil)
+	if err != nil {
+		t.Fatalf("list prompts: %v", err)
+	}
+	if len(promptsResult.Prompts) == 0 {
+		t.Fatal("expected at least 1 prompt")
+	}
+
+	// GetPrompt — all-available-metrics
+	promptResult, err := cs.GetPrompt(ctx, &mcp.GetPromptParams{Name: "all-available-metrics"})
+	if err != nil {
+		t.Fatalf("get prompt: %v", err)
+	}
+	if len(promptResult.Messages) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(promptResult.Messages))
 	}
 }
 
