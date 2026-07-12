@@ -24,13 +24,13 @@ prometheus-mcp-server --prom-addr="http://localhost:9090"
 
 ### Flags
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `-prom-addr` | `http://localhost:9090` | Prometheus server URL |
-| `-mcp-addr` | `localhost:8080` | MCP server listen address |
-| `-transport` | `stdio` | `stdio` or `http` |
-| `-auth-token` | `` | Bearer token for MCP endpoint authentication (optional) |
-| `-version` | | Print version |
+| Flag          | Default                 | Description                                             |
+| ------------- | ----------------------- | ------------------------------------------------------- |
+| `-prom-addr`  | `http://localhost:9090` | Prometheus server URL                                   |
+| `-mcp-addr`   | `localhost:8080`        | MCP server listen address                               |
+| `-transport`  | `stdio`                 | `stdio` or `http`                                       |
+| `-auth-token` | ``                      | Bearer token for MCP endpoint authentication (optional) |
+| `-version`    |                         | Print version                                           |
 
 ### Environment Variables
 
@@ -61,7 +61,14 @@ If you don't have the binary installed, use Docker:
   "mcpServers": {
     "prometheus": {
       "command": "docker",
-      "args": ["run", "--rm", "-i", "ghcr.io/yshngg/prometheus-mcp-server:latest", "--prom-addr", "http://host.docker.internal:9090"]
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "ghcr.io/yshngg/prometheus-mcp-server:latest",
+        "--prom-addr",
+        "http://host.docker.internal:9090"
+      ]
     }
   }
 }
@@ -92,7 +99,14 @@ With Docker:
   "mcpServers": {
     "prometheus": {
       "command": "docker",
-      "args": ["run", "--rm", "-i", "ghcr.io/yshngg/prometheus-mcp-server:latest", "--prom-addr", "http://host.docker.internal:9090"]
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "ghcr.io/yshngg/prometheus-mcp-server:latest",
+        "--prom-addr",
+        "http://host.docker.internal:9090"
+      ]
     }
   }
 }
@@ -111,7 +125,11 @@ Add to `opencode.json` (<a href="https://opencode.ai/docs/mcp-servers">guide</a>
   "mcp": {
     "prometheus": {
       "type": "local",
-      "command": ["prometheus-mcp-server", "--prom-addr", "http://localhost:9090"]
+      "command": [
+        "prometheus-mcp-server",
+        "--prom-addr",
+        "http://localhost:9090"
+      ]
     }
   }
 }
@@ -131,6 +149,7 @@ prometheus-mcp-server --transport=http --mcp-addr="localhost:8080"
 Then configure your client to use `http://localhost:8080/mcp`.
 
 For authenticated access, set `AUTH_TOKEN`:
+
 ```bash
 AUTH_TOKEN=my-token prometheus-mcp-server --transport=http
 ```
@@ -155,28 +174,28 @@ Your client must then include `Authorization: Bearer my-token` in requests to `/
 
 The server exposes Prometheus data as URI-addressable resources under the `prom:///` scheme:
 
-| URI | Description |
-|-----|-------------|
-| `prom:///config` | Currently loaded configuration (YAML) |
-| `prom:///flags` | Command-line flag values |
-| `prom:///runtime-info` | Runtime information |
-| `prom:///build-info` | Build information |
-| `prom:///tsdb-stats` | TSDB cardinality statistics |
-| `prom:///wal-replay-stats` | WAL replay state |
+| URI                        | Description                           |
+| -------------------------- | ------------------------------------- |
+| `prom:///config`           | Currently loaded configuration (YAML) |
+| `prom:///flags`            | Command-line flag values              |
+| `prom:///runtime-info`     | Runtime information                   |
+| `prom:///build-info`       | Build information                     |
+| `prom:///tsdb-stats`       | TSDB cardinality statistics           |
+| `prom:///wal-replay-stats` | WAL replay state                      |
 
 ### Resource Templates
 
 URI templates for dynamic data access:
 
-| Template | Description |
-|----------|-------------|
-| `prom:///api/v1/query?query={promql}` | Instant PromQL query result |
-| `prom:///api/v1/label/{name}/values` | Label values for a given label name |
+| Template                              | Description                         |
+| ------------------------------------- | ----------------------------------- |
+| `prom:///api/v1/query?query={promql}` | Instant PromQL query result         |
+| `prom:///api/v1/label/{name}/values`  | Label values for a given label name |
 
 ## Prompts
 
-| Name | Arguments | Description |
-|------|-----------|-------------|
+| Name                    | Arguments           | Description                                       |
+| ----------------------- | ------------------- | ------------------------------------------------- |
 | `all-available-metrics` | `prefix` (optional) | Lists all metric names in the Prometheus instance |
 
 ## License
