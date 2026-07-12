@@ -117,7 +117,7 @@ func TestMetricsMiddleware_WithRequest(t *testing.T) {
 	mw := metricsMiddleware(func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
 		return nil, nil
 	})
-	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Name: "instant-query"}}
+	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Name: "instant_query"}}
 	_, err := mw(context.Background(), methodCallTool, req)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -128,7 +128,7 @@ func TestMetricsMiddleware_WithRequestError(t *testing.T) {
 	mw := metricsMiddleware(func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
 		return nil, errors.New("handler error")
 	})
-	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Name: "instant-query"}}
+	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Name: "instant_query"}}
 	_, err := mw(context.Background(), methodCallTool, req)
 	if err == nil {
 		t.Fatal("expected error")
@@ -589,7 +589,7 @@ func TestDestructiveToolMiddleware_NonDestructiveTool(t *testing.T) {
 		called = true
 		return nil, nil
 	})
-	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Name: "instant-query"}}
+	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Name: "instant_query"}}
 	_, err := mw(context.Background(), methodCallTool, req)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -605,7 +605,7 @@ func TestDestructiveToolMiddleware_NilSession(t *testing.T) {
 		called = true
 		return nil, nil
 	})
-	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Name: "delete-series"}}
+	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Name: "delete_series"}}
 	_, err := mw(context.Background(), methodCallTool, req)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -665,7 +665,7 @@ func TestDestructiveToolMiddleware_ElicitConfirmed(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "server", Version: "1.0"}, nil)
 	server.AddReceivingMiddleware(destructiveToolMiddleware)
 	var handlerCalled bool
-	mcp.AddTool(server, &mcp.Tool{Name: "delete-series"}, func(ctx context.Context, req *mcp.CallToolRequest, _ any) (*mcp.CallToolResult, any, error) {
+	mcp.AddTool(server, &mcp.Tool{Name: "delete_series"}, func(ctx context.Context, req *mcp.CallToolRequest, _ any) (*mcp.CallToolResult, any, error) {
 		handlerCalled = true
 		return &mcp.CallToolResult{}, nil, nil
 	})
@@ -698,7 +698,7 @@ func TestDestructiveToolMiddleware_ElicitConfirmed(t *testing.T) {
 		}
 	}()
 
-	_, err = cs.CallTool(ctx, &mcp.CallToolParams{Name: "delete-series"})
+	_, err = cs.CallTool(ctx, &mcp.CallToolParams{Name: "delete_series"})
 	if err != nil {
 		t.Fatalf("call tool: %v", err)
 	}
@@ -809,33 +809,33 @@ func TestEndToEnd(t *testing.T) {
 
 	// CallTool — instant query
 	callResult, err := cs.CallTool(ctx, &mcp.CallToolParams{
-		Name: "instant-query",
+		Name: "instant_query",
 		Arguments: map[string]any{"query": "up"},
 	})
 	if err != nil {
-		t.Fatalf("call tool instant-query: %v", err)
+		t.Fatalf("call tool instant_query: %v", err)
 	}
 	if callResult.IsError {
-		t.Fatal("expected instant-query to succeed")
+		t.Fatal("expected instant_query to succeed")
 	}
 
 	// CallTool — non-destructive tool passes through middleware
-	healthResult, err := cs.CallTool(ctx, &mcp.CallToolParams{Name: "health-check"})
+	healthResult, err := cs.CallTool(ctx, &mcp.CallToolParams{Name: "health_check"})
 	if err != nil {
-		t.Fatalf("call tool health-check: %v", err)
+		t.Fatalf("call tool health_check: %v", err)
 	}
 	if healthResult.IsError {
-		t.Fatal("expected health-check to succeed")
+		t.Fatal("expected health_check to succeed")
 	}
 
 	// CallTool — destructive tool with no client elicitation support
 	// should fall through (ConfirmDestructive returns (true, nil) on error)
-	delResult, err := cs.CallTool(ctx, &mcp.CallToolParams{Name: "delete-series", Arguments: map[string]any{"match[]": []string{"up"}}})
+	delResult, err := cs.CallTool(ctx, &mcp.CallToolParams{Name: "delete_series", Arguments: map[string]any{"match[]": []string{"up"}}})
 	if err != nil {
-		t.Fatalf("call tool delete-series: %v", err)
+		t.Fatalf("call tool delete_series: %v", err)
 	}
 	if delResult.IsError {
-		t.Fatal("expected delete-series to fall through when elicitation unsupported")
+		t.Fatal("expected delete_series to fall through when elicitation unsupported")
 	}
 
 	// ListResources

@@ -76,11 +76,11 @@ func (b *binder) addTools() {
 	{
 		expressionQuerier := expressionquery.NewExpressionQuerier(b.api)
 		mcp.AddTool(b.server, withOutputSchema(readOnlyTool(
-			"instant-query", "Evaluate an instant query at a single point in time.", "Instant Query"),
+			"instant_query", "Evaluate an instant query at a single point in time.", "Instant Query"),
 		promqlSchema), expressionQuerier.InstantQueryHandler)
 
 		mcp.AddTool(b.server, withOutputSchema(readOnlyTool(
-			"range-query", "Evaluate an expression query over a range of time.", "Range Query"),
+			"range_query", "Evaluate an expression query over a range of time.", "Range Query"),
 		promqlSchema), expressionQuerier.RangeQueryHandler)
 	}
 
@@ -89,23 +89,23 @@ func (b *binder) addTools() {
 	// full queries, which helps the LLM discover metric names and label values.
 	{
 		metadataQuerier := metadataquery.NewMetadataQuerier(b.api)
-		mcp.AddTool(b.server, readOnlyTool("find-series-by-labels",
+		mcp.AddTool(b.server, readOnlyTool("find_series_by_labels",
 			"Return the list of time series that match a certain label set.", "Find Series by Labels",
 		), metadataQuerier.SeriesHandler)
 
-		mcp.AddTool(b.server, readOnlyTool("list-label-names",
+		mcp.AddTool(b.server, readOnlyTool("list_label_names",
 			"Return a list of label names.", "List Label Names",
 		), metadataQuerier.LabelNamesHandler)
 
-		mcp.AddTool(b.server, readOnlyTool("list-label-values",
+		mcp.AddTool(b.server, readOnlyTool("list_label_values",
 			"Return a list of label values for a provided label name.", "List Label Values",
 		), metadataQuerier.LabelValuesHandler)
 
-		mcp.AddTool(b.server, readOnlyTool("target-metadata-query",
+		mcp.AddTool(b.server, readOnlyTool("target_metadata_query",
 			"Return metadata about metrics currently scraped from targets.", "Target Metadata Query",
 		), metadataQuerier.TargetMetadataQueryHandler)
 
-		mcp.AddTool(b.server, readOnlyTool("metric-metadata-query",
+		mcp.AddTool(b.server, readOnlyTool("metric_metadata_query",
 			"Return metadata about metrics currently scraped from targets. However, it does not provide any target information.", "Metric Metadata Query",
 		), metadataQuerier.MetricsMetadataQueryHandler)
 	}
@@ -114,7 +114,7 @@ func (b *binder) addTools() {
 	// diagnose missing metrics without parsing raw Prometheus API responses.
 	{
 		targetDiscoverer := targetdiscover.NewTargetDiscoverer(b.api)
-		mcp.AddTool(b.server, readOnlyTool("target-discovery",
+		mcp.AddTool(b.server, readOnlyTool("target_discovery",
 			"Return an overview of the current state of the Prometheus target discovery.", "Target Discovery",
 		), targetDiscoverer.TargetDiscoverHandler)
 	}
@@ -123,7 +123,7 @@ func (b *binder) addTools() {
 	// are active, enabling them to explain firing alerts and suggest threshold changes.
 	{
 		ruleQuerier := rulequery.NewRuleQuerier(b.api)
-		mcp.AddTool(b.server, readOnlyTool("rule-query",
+		mcp.AddTool(b.server, readOnlyTool("rule_query",
 			"Return a list of alerting and recording rules that are currently loaded. In addition it returns the currently active alerts fired by the Prometheus instance of each alerting rule.",
 			"Rule Query",
 		), ruleQuerier.RuleQueryHandler)
@@ -133,7 +133,7 @@ func (b *binder) addTools() {
 	// incident response and root-cause analysis alongside rule definitions.
 	{
 		alertQuerier := alertquery.NewAlertQuerier(b.api)
-		mcp.AddTool(b.server, readOnlyTool("alert-query",
+		mcp.AddTool(b.server, readOnlyTool("alert_query",
 			"Return a list of all active alerts.", "Alert Query",
 		), alertQuerier.AlertQueryHandler)
 	}
@@ -142,7 +142,7 @@ func (b *binder) addTools() {
 	// diagnose notification delivery issues.
 	{
 		alertmanagerDiscoverer := alertmanagerdiscover.NewAlertmanagerDiscoverer(b.api)
-		mcp.AddTool(b.server, readOnlyTool("alertmanager-discovery",
+		mcp.AddTool(b.server, readOnlyTool("alertmanager_discovery",
 			"Return an overview of the current state of the Prometheus alertmanager discovery.", "Alertmanager Discovery",
 		), alertmanagerDiscoverer.AlertmanagerDiscoverHandler)
 	}
@@ -152,17 +152,17 @@ func (b *binder) addTools() {
 	// triggers the elicitation middleware to confirm before executing.
 	{
 		tsdbAdmin := tsdbadmin.NewTSDBAdmin(b.api)
-		mcp.AddTool(b.server, destructiveTool("tsdb-snapshot",
+		mcp.AddTool(b.server, destructiveTool("tsdb_snapshot",
 			"Create a snapshot of all current data into snapshots/<datetime>-<rand> under the TSDB's data directory and returns the directory as response. It will optionally skip snapshotting data that is only present in the head block, and which has not yet been compacted to disk.",
 			"TSDB Snapshot",
 		), tsdbAdmin.SnapshotHandler)
 
-		mcp.AddTool(b.server, destructiveTool("delete-series",
+		mcp.AddTool(b.server, destructiveTool("delete_series",
 			"Delete data for a selection of series in a time range. The actual data still exists on disk and is cleaned up in future compactions or can be explicitly cleaned up by hitting the Clean Tombstones endpoint. Not mentioning both start and end times would clear all the data for the matched series in the database.",
 			"Delete Series",
 		), tsdbAdmin.DeleteSeriesHandler)
 
-		mcp.AddTool(b.server, destructiveTool("clean-tombstones",
+		mcp.AddTool(b.server, destructiveTool("clean_tombstones",
 			"Remove the deleted data from disk and cleans up the existing tombstones. This can be used after deleting series to free up space.",
 			"Clean Tombstones",
 		), tsdbAdmin.CleanTombstonesHandler)
@@ -173,11 +173,11 @@ func (b *binder) addTools() {
 	// operations execute. Health checks are read-only and safe for repeated calls.
 	{
 		manager := manage.NewManager(b.api)
-		mcp.AddTool(b.server, idempotentTool("health-check",
+		mcp.AddTool(b.server, idempotentTool("health_check",
 			"Check Prometheus health.", "Health Check",
 		), manager.HealthCheckHandler)
 
-		mcp.AddTool(b.server, idempotentTool("readiness-check",
+		mcp.AddTool(b.server, idempotentTool("readiness_check",
 			"Check if Prometheus is ready to serve traffic (i.e. respond to queries).", "Readiness Check",
 		), manager.ReadinessCheckHandler)
 

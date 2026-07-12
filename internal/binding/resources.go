@@ -142,7 +142,7 @@ func (b *binder) addStaticResources() {
 func (b *binder) addResourceTemplates() {
 	b.server.AddResourceTemplate(&mcp.ResourceTemplate{
 		URITemplate: "prom:///api/v1/query?query={promql}",
-		Name:        "instant-query",
+		Name:        "instant_query",
 		Title:       "Prometheus Instant Query",
 		Description: "Result of an instant Prometheus query. Replace {promql} with a URL-encoded PromQL expression. Use prometheus time format for timestamps.",
 		MIMEType:    "application/json",
