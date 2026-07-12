@@ -101,8 +101,8 @@ func metricsMiddleware(next mcp.MethodHandler) mcp.MethodHandler {
 }
 
 var destructiveTools = map[string]bool{
-	"delete-series":    true,
-	"clean-tombstones": true,
+	"delete_series":    true,
+	"clean_tombstones": true,
 	"reload":           true,
 	"quit":             true,
 }
@@ -225,10 +225,10 @@ func newServer(promAddr string) (*mcp.Server, promapi.PrometheusAPI, error) {
 		Version: string(buildinfo.Info.Number),
 	}, &mcp.ServerOptions{
 		Instructions: "You are connected to a Prometheus monitoring instance. " +
-			"Use expression queries (instant-query, range-query) to explore time-series data. " +
-			"Use metadata tools (list-label-names, list-label-values, find-series-by-labels) to discover available metrics and labels. " +
+			"Use expression queries (instant_query, range_query) to explore time-series data. " +
+			"Use metadata tools (list_label_names, list_label_values, find_series_by_labels) to discover available metrics and labels. " +
 			"Resources are available at prom:/// URIs (e.g., prom:///config, prom:///api/v1/query?query=up) for direct data access. " +
-			"Use management tools (health-check, readiness-check, reload, quit) with caution as quit and reload affect server operation.",
+			"Use management tools (health_check, readiness_check, reload, quit) with caution as quit and reload affect server operation.",
 		SchemaCache: mcp.NewSchemaCache(),
 		PageSize:    50,
 		CompletionHandler: func(ctx context.Context, req *mcp.CompleteRequest) (*mcp.CompleteResult, error) {

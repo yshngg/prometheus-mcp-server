@@ -141,15 +141,15 @@ Your client must then include `Authorization: Bearer my-token` in requests to `/
 
 ## Tools
 
-**Expression:** `instant-query`, `range-query`
+**Expression:** `instant_query`, `range_query`
 
-**Metadata:** `find-series-by-labels`, `list-label-names`, `list-label-values`, `target-metadata-query`, `metric-metadata-query`
+**Metadata:** `find_series_by_labels`, `list_label_names`, `list_label_values`, `target_metadata_query`, `metric_metadata_query`
 
-**Discovery:** `target-discovery`, `alert-query`, `rule-query`, `alertmanager-discovery`
+**Discovery:** `target_discovery`, `alert_query`, `rule_query`, `alertmanager_discovery`
 
-**TSDB Admin:** `tsdb-snapshot`, `delete-series`, `clean-tombstones`
+**TSDB Admin:** `tsdb_snapshot`, `delete_series`, `clean_tombstones`
 
-**Management:** `health-check`, `readiness-check`, `reload`, `quit`
+**Management:** `health_check`, `readiness_check`, `reload`, `quit`
 
 ## Resources
 
