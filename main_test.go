@@ -878,6 +878,21 @@ func TestEndToEnd(t *testing.T) {
 	}
 }
 
+func TestInitKlogFlags_OnlyVForwarded(t *testing.T) {
+	fs := flag.NewFlagSet("test", flag.PanicOnError)
+	initKlogFlags(fs)
+
+	if v := fs.Lookup("v"); v == nil {
+		t.Fatal("expected -v flag to be registered")
+	}
+
+	for _, name := range []string{"vmodule", "logtostderr", "alsologtostderr", "stderrthreshold", "log_dir", "log_file", "add_dir_header", "skip_log_headers", "one_output"} {
+		if f := fs.Lookup(name); f != nil {
+			t.Fatalf("unexpected flag -%s registered", name)
+		}
+	}
+}
+
 func captureStderr(t *testing.T, fn func()) string {
 	t.Helper()
 	r, w, err := os.Pipe()

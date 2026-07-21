@@ -148,12 +148,26 @@ func envOrDefault(key, fallback string) string {
 	return fallback
 }
 
+func initKlogFlags(fs *flag.FlagSet) {
+	klogFlags := flag.NewFlagSet("klog", flag.ExitOnError)
+	klog.InitFlags(klogFlags)
+	_ = klogFlags.Set("legacy_stderr_threshold_behavior", "false")
+	_ = klogFlags.Set("stderrthreshold", "INFO")
+	klogFlags.VisitAll(func(f *flag.Flag) {
+		if f.Name == "v" {
+			fs.Var(f.Value, f.Name, f.Usage)
+		}
+	})
+}
+
 func main() {
 	klog.LogToStderr(true)
 	defer klog.Flush()
 
 	fs := flag.NewFlagSet("prometheus-mcp-server", flag.ExitOnError)
-	klog.InitFlags(fs)
+
+	initKlogFlags(fs)
+
 	var (
 		promAddr      = fs.String("prom-addr", envOrDefault("PROM_ADDR", "http://localhost:9090/"), "The address of the Prometheus to connect to.")
 		mcpAddr       = fs.String("mcp-addr", envOrDefault("MCP_ADDR", "localhost:8080"), "The address of the MCP server to listen on.")
