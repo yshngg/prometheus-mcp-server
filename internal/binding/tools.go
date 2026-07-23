@@ -179,16 +179,6 @@ func (b *binder) addTools() {
 		), formatQuerier.FormatQueryHandler)
 	}
 
-	// TSDB blocks introspection exposes the current state of TSDB block storage,
-	// which is useful for understanding data retention and compaction status.
-	{
-		tsdbAdmin := tsdbadmin.NewTSDBAdmin(b.api)
-		mcp.AddTool(b.server, readOnlyTool("tsdb_blocks",
-			"Return the list of currently loaded TSDB blocks and their metadata.",
-			"TSDB Blocks",
-		), tsdbAdmin.TSDBBlocksHandler)
-	}
-
 	// Reload and quit affect the running Prometheus process. The destructive hint
 	// annotation triggers the elicitation middleware so users confirm before these
 	// operations execute. Health checks are read-only and safe for repeated calls.

@@ -155,39 +155,6 @@ func (b *binder) addStaticResources() {
 
 func (b *binder) addResourceTemplates() {
 	b.server.AddResourceTemplate(&mcp.ResourceTemplate{
-		URITemplate: "prom:///api/v1/format_query?query={promql}",
-		Name:        "format_query",
-		Title:       "Prometheus Format Query",
-		Description: "Result of formatting a PromQL expression. Replace {promql} with a URL-encoded PromQL expression.",
-		MIMEType:    "text/plain",
-	}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
-		uri := req.Params.URI
-		parsed, err := url.Parse(uri)
-		if err != nil {
-			return nil, fmt.Errorf("invalid resource URI: %w", err)
-		}
-		promql := parsed.Query().Get("query")
-		if promql == "" {
-			return nil, fmt.Errorf("missing query parameter in resource URI")
-		}
-
-		result, err := b.api.FormatQuery(ctx, promql)
-		if err != nil {
-			return nil, fmt.Errorf("format query %q: %w", promql, err)
-		}
-
-		return &mcp.ReadResourceResult{
-			Contents: []*mcp.ResourceContents{
-				{
-					URI:      uri,
-					MIMEType: "text/plain",
-					Text:     result,
-				},
-			},
-		}, nil
-	})
-
-	b.server.AddResourceTemplate(&mcp.ResourceTemplate{
 		URITemplate: "prom:///api/v1/query?query={promql}",
 		Name:        "instant_query",
 		Title:       "Prometheus Instant Query",
