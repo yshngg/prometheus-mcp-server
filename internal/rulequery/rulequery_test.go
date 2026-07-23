@@ -11,7 +11,7 @@ import (
 
 func TestRuleQueryHandler_Success(t *testing.T) {
 	mock := &mock.PrometheusAPI{
-		RulesFunc: func(ctx context.Context) (v1.RulesResult, error) {
+		RulesFunc: func(ctx context.Context, _ []string) (v1.RulesResult, error) {
 			return v1.RulesResult{Groups: []v1.RuleGroup{{Name: "test"}}}, nil
 		},
 	}
@@ -27,7 +27,7 @@ func TestRuleQueryHandler_Success(t *testing.T) {
 
 func TestRuleQueryHandler_APIError(t *testing.T) {
 	mock := &mock.PrometheusAPI{
-		RulesFunc: func(ctx context.Context) (v1.RulesResult, error) {
+		RulesFunc: func(ctx context.Context, _ []string) (v1.RulesResult, error) {
 			return v1.RulesResult{}, errors.New("api error")
 		},
 	}

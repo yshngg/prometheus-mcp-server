@@ -11,6 +11,7 @@ type TSDBAdmin interface {
 	SnapshotHandler(ctx context.Context, request *mcp.CallToolRequest, input *SnapshotParams) (*mcp.CallToolResult, *SnapshotResult, error)
 	DeleteSeriesHandler(ctx context.Context, request *mcp.CallToolRequest, input *DeleteSeriesParams) (*mcp.CallToolResult, *promapi.Result, error)
 	CleanTombstonesHandler(ctx context.Context, request *mcp.CallToolRequest, input *CleanTombstonesParams) (*mcp.CallToolResult, *promapi.Result, error)
+	TSDBBlocksHandler(ctx context.Context, request *mcp.CallToolRequest, input *TSDBBlocksParams) (*mcp.CallToolResult, *TSDBBlocksResult, error)
 }
 
 // NewTSDBAdmin returns a TSDBAdmin implementation that delegates Prometheus operations to the provided PrometheusAPI.

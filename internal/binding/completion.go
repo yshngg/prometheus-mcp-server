@@ -26,8 +26,9 @@ func HandleCompletion(ctx context.Context, req *mcp.CompleteRequest, client prom
 			}
 			var matches []string
 			for _, n := range names {
-				if val == "" || strings.HasPrefix(n, val) {
-					matches = append(matches, n)
+				s := string(n)
+				if val == "" || strings.HasPrefix(s, val) {
+					matches = append(matches, s)
 				}
 			}
 			return &mcp.CompleteResult{

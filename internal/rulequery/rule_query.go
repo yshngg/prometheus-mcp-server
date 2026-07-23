@@ -39,8 +39,8 @@ type RuleQueryArguments struct {
 type RuleQueryResult = v1.RulesResult
 
 func (q *ruleQuerier) RuleQueryHandler(ctx context.Context, request *mcp.CallToolRequest, input *RuleQueryArguments) (*mcp.CallToolResult, *RuleQueryResult, error) {
-	// TODO: Implement filtering and pagination based on input
-	result, err := q.API.Rules(ctx)
+	// TODO: Implement filtering and pagination based on input (type, rule_name[], rule_group[], file[], exclude_alerts, group_limit, group_next_token)
+	result, err := q.API.Rules(ctx, input.Match)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -17,14 +17,16 @@ type PrometheusAPI struct {
 	ConfigFunc             func(ctx context.Context) (v1.ConfigResult, error)
 	DeleteSeriesFunc       func(ctx context.Context, matches []string, startTime, endTime time.Time) error
 	FlagsFunc              func(ctx context.Context) (v1.FlagsResult, error)
-	LabelNamesFunc         func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error)
+	LabelNamesFunc         func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelNames, v1.Warnings, error)
 	LabelValuesFunc        func(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error)
 	SeriesFunc             func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]model.LabelSet, v1.Warnings, error)
-	RulesFunc              func(ctx context.Context) (v1.RulesResult, error)
+	RulesFunc              func(ctx context.Context, matches []string) (v1.RulesResult, error)
 	SnapshotFunc           func(ctx context.Context, skipHead bool) (v1.SnapshotResult, error)
 	TargetsFunc            func(ctx context.Context) (v1.TargetsResult, error)
 	TargetsMetadataFunc    func(ctx context.Context, matchTarget, metric, limit string) ([]v1.MetricMetadata, error)
 	MetadataFunc           func(ctx context.Context, metric, limit string) (map[string][]v1.Metadata, error)
+	FormatQueryFunc        func(ctx context.Context, query string) (string, error)
+	TSDBBlocksFunc         func(ctx context.Context) (v1.TSDBBlocksResult, error)
 	TSDBFunc               func(ctx context.Context, opts ...v1.Option) (v1.TSDBResult, error)
 	WalReplayFunc          func(ctx context.Context) (v1.WalReplayStatus, error)
 	BuildinfoFunc          func(ctx context.Context) (v1.BuildinfoResult, error)
@@ -78,7 +80,7 @@ func (m *PrometheusAPI) Flags(ctx context.Context) (v1.FlagsResult, error) {
 	return m.FlagsFunc(ctx)
 }
 
-func (m *PrometheusAPI) LabelNames(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
+func (m *PrometheusAPI) LabelNames(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelNames, v1.Warnings, error) {
 	if m.LabelNamesFunc == nil {
 		return nil, nil, nil
 	}
@@ -113,11 +115,11 @@ func (m *PrometheusAPI) Series(ctx context.Context, matches []string, startTime,
 	return m.SeriesFunc(ctx, matches, startTime, endTime, opts...)
 }
 
-func (m *PrometheusAPI) Rules(ctx context.Context) (v1.RulesResult, error) {
+func (m *PrometheusAPI) Rules(ctx context.Context, matches []string) (v1.RulesResult, error) {
 	if m.RulesFunc == nil {
 		return v1.RulesResult{}, nil
 	}
-	return m.RulesFunc(ctx)
+	return m.RulesFunc(ctx, matches)
 }
 
 func (m *PrometheusAPI) Snapshot(ctx context.Context, skipHead bool) (v1.SnapshotResult, error) {
@@ -146,6 +148,20 @@ func (m *PrometheusAPI) Metadata(ctx context.Context, metric, limit string) (map
 		return nil, nil
 	}
 	return m.MetadataFunc(ctx, metric, limit)
+}
+
+func (m *PrometheusAPI) FormatQuery(ctx context.Context, query string) (string, error) {
+	if m.FormatQueryFunc == nil {
+		return "", nil
+	}
+	return m.FormatQueryFunc(ctx, query)
+}
+
+func (m *PrometheusAPI) TSDBBlocks(ctx context.Context) (v1.TSDBBlocksResult, error) {
+	if m.TSDBBlocksFunc == nil {
+		return v1.TSDBBlocksResult{}, nil
+	}
+	return m.TSDBBlocksFunc(ctx)
 }
 
 func (m *PrometheusAPI) TSDB(ctx context.Context, opts ...v1.Option) (v1.TSDBResult, error) {
