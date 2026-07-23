@@ -235,3 +235,28 @@ func TestCachingAPI_Passthrough(t *testing.T) {
 		t.Fatalf("Quit: %v", err)
 	}
 }
+
+func TestCachingAPI_FormatQuery(t *testing.T) {
+	inner := NewMockAPI()
+	caching := NewCachingAPI(inner, time.Hour).(*CachingPrometheusAPI)
+
+	ctx := context.Background()
+	result, err := caching.FormatQuery(ctx, "up == 1")
+	if err != nil {
+		t.Fatalf("FormatQuery: %v", err)
+	}
+	if result != "up == 1" {
+		t.Fatalf("expected 'up == 1', got %s", result)
+	}
+}
+
+func TestCachingAPI_TSDBBlocks(t *testing.T) {
+	inner := NewMockAPI()
+	caching := NewCachingAPI(inner, time.Hour).(*CachingPrometheusAPI)
+
+	ctx := context.Background()
+	_, err := caching.TSDBBlocks(ctx)
+	if err != nil {
+		t.Fatalf("TSDBBlocks: %v", err)
+	}
+}
