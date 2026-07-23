@@ -36,3 +36,15 @@ func TestFormatQueryHandler_APIError(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestFormatQueryHandler_DefaultMock(t *testing.T) {
+	mock := &mock.PrometheusAPI{}
+	q := NewFormatQuerier(mock)
+	_, result, err := q.FormatQueryHandler(context.Background(), nil, &FormatQueryArguments{Query: "up == 1"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.FormattedQuery != "" {
+		t.Fatalf("expected empty result from default mock, got %s", result.FormattedQuery)
+	}
+}

@@ -200,3 +200,15 @@ func TestTSDBBlocksHandler_APIError(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestTSDBBlocksHandler_DefaultMock(t *testing.T) {
+	mock := &mock.PrometheusAPI{}
+	a := NewTSDBAdmin(mock)
+	_, result, err := a.TSDBBlocksHandler(context.Background(), nil, &TSDBBlocksParams{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil result")
+	}
+}
