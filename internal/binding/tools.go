@@ -7,6 +7,7 @@ import (
 	"github.com/yshngg/prometheus-mcp-server/internal/alertmanagerdiscover"
 	"github.com/yshngg/prometheus-mcp-server/internal/alertquery"
 	"github.com/yshngg/prometheus-mcp-server/internal/expressionquery"
+	"github.com/yshngg/prometheus-mcp-server/internal/formatquery"
 	"github.com/yshngg/prometheus-mcp-server/internal/manage"
 	"github.com/yshngg/prometheus-mcp-server/internal/metadataquery"
 	"github.com/yshngg/prometheus-mcp-server/internal/rulequery"
@@ -166,6 +167,16 @@ func (b *binder) addTools() {
 			"Remove the deleted data from disk and cleans up the existing tombstones. This can be used after deleting series to free up space.",
 			"Clean Tombstones",
 		), tsdbAdmin.CleanTombstonesHandler)
+	}
+
+	// Format query provides a way to format/beautify PromQL expressions, which
+	// helps LLMs generate cleaner query strings.
+	{
+		formatQuerier := formatquery.NewFormatQuerier(b.api)
+		mcp.AddTool(b.server, readOnlyTool("format_query",
+			"Format a PromQL expression in a prettified way.",
+			"Format Query",
+		), formatQuerier.FormatQueryHandler)
 	}
 
 	// Reload and quit affect the running Prometheus process. The destructive hint

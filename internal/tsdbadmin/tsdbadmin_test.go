@@ -158,3 +158,57 @@ func TestCleanTombstonesHandler_APIError(t *testing.T) {
 		t.Fatal("expected failure")
 	}
 }
+
+func TestTSDBBlocksHandler_Success(t *testing.T) {
+	mock := &mock.PrometheusAPI{
+		TSDBBlocksFunc: func(ctx context.Context) (v1.TSDBBlocksResult, error) {
+			return v1.TSDBBlocksResult{
+				Status: "success",
+				Data: v1.TSDBBlocksData{
+					Blocks: []v1.TSDBBlocksBlockMetadata{
+						{Ulid: "01JQZEXAMPLE"},
+					},
+				},
+			}, nil
+		},
+	}
+	a := NewTSDBAdmin(mock)
+	_, result, err := a.TSDBBlocksHandler(context.Background(), nil, &TSDBBlocksParams{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Status != "success" {
+		t.Fatalf("expected success status, got %s", result.Status)
+	}
+	if len(result.Data.Blocks) != 1 {
+		t.Fatalf("expected 1 block, got %d", len(result.Data.Blocks))
+	}
+	if result.Data.Blocks[0].Ulid != "01JQZEXAMPLE" {
+		t.Fatalf("expected Ulid 01JQZEXAMPLE, got %s", result.Data.Blocks[0].Ulid)
+	}
+}
+
+func TestTSDBBlocksHandler_APIError(t *testing.T) {
+	mock := &mock.PrometheusAPI{
+		TSDBBlocksFunc: func(ctx context.Context) (v1.TSDBBlocksResult, error) {
+			return v1.TSDBBlocksResult{}, errors.New("api error")
+		},
+	}
+	a := NewTSDBAdmin(mock)
+	_, _, err := a.TSDBBlocksHandler(context.Background(), nil, &TSDBBlocksParams{})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestTSDBBlocksHandler_DefaultMock(t *testing.T) {
+	mock := &mock.PrometheusAPI{}
+	a := NewTSDBAdmin(mock)
+	_, result, err := a.TSDBBlocksHandler(context.Background(), nil, &TSDBBlocksParams{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil result")
+	}
+}

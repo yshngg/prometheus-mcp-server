@@ -98,6 +98,20 @@ func (b *binder) addStaticResources() {
 		},
 		},
 		{
+			uri:         "prom:///tsdb-blocks",
+			name:        "tsdb-blocks",
+			title:       "TSDB Blocks",
+			description: "Currently loaded TSDB blocks and their metadata.",
+			mimeType:    "application/json",
+			fetch: func(ctx context.Context) (string, error) {
+				result, err := b.api.TSDBBlocks(ctx)
+				if err != nil {
+					return "", err
+				}
+			return marshalJSON("marshal response", result)
+		},
+		},
+		{
 			uri:         "prom:///wal-replay-stats",
 			name:        "wal-replay-stats",
 			title:       "WAL Replay Statistics",

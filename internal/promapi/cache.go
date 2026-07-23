@@ -27,13 +27,13 @@ func NewCachingAPI(inner PrometheusAPI, ttl time.Duration) PrometheusAPI {
 	}
 }
 
-func (c *CachingPrometheusAPI) LabelNames(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
+func (c *CachingPrometheusAPI) LabelNames(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelNames, v1.Warnings, error) {
 	key := "labelnames"
 	if len(matches) > 0 || !startTime.IsZero() || !endTime.IsZero() {
 		return c.PrometheusAPI.LabelNames(ctx, matches, startTime, endTime, opts...)
 	}
 	if v, ok := c.cache.Get(key); ok {
-		return v.([]string), nil, nil
+		return v.(model.LabelNames), nil, nil
 	}
 	names, warnings, err := c.PrometheusAPI.LabelNames(ctx, matches, startTime, endTime, opts...)
 	if err != nil {
@@ -90,8 +90,8 @@ func (c *CachingPrometheusAPI) AlertManagers(ctx context.Context) (v1.AlertManag
 }
 
 // Rules is uncacheable — pass through.
-func (c *CachingPrometheusAPI) Rules(ctx context.Context) (v1.RulesResult, error) {
-	return c.PrometheusAPI.Rules(ctx)
+func (c *CachingPrometheusAPI) Rules(ctx context.Context, matches []string) (v1.RulesResult, error) {
+	return c.PrometheusAPI.Rules(ctx, matches)
 }
 
 // Targets is uncacheable — pass through.
@@ -114,6 +114,11 @@ func (c *CachingPrometheusAPI) TSDB(ctx context.Context, opts ...v1.Option) (v1.
 	return c.PrometheusAPI.TSDB(ctx, opts...)
 }
 
+// TSDBBlocks is uncacheable — pass through.
+func (c *CachingPrometheusAPI) TSDBBlocks(ctx context.Context) (v1.TSDBBlocksResult, error) {
+	return c.PrometheusAPI.TSDBBlocks(ctx)
+}
+
 // WalReplay is uncacheable — pass through.
 func (c *CachingPrometheusAPI) WalReplay(ctx context.Context) (v1.WalReplayStatus, error) {
 	return c.PrometheusAPI.WalReplay(ctx)
@@ -131,6 +136,10 @@ func (c *CachingPrometheusAPI) Runtimeinfo(ctx context.Context) (v1.RuntimeinfoR
 
 func (c *CachingPrometheusAPI) Snapshot(ctx context.Context, skipHead bool) (v1.SnapshotResult, error) {
 	return c.PrometheusAPI.Snapshot(ctx, skipHead)
+}
+
+func (c *CachingPrometheusAPI) FormatQuery(ctx context.Context, query string) (string, error) {
+	return c.PrometheusAPI.FormatQuery(ctx, query)
 }
 
 func (c *CachingPrometheusAPI) CleanTombstones(ctx context.Context) error {

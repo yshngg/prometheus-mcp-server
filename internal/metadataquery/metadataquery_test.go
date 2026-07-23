@@ -68,8 +68,8 @@ func TestSeriesHandler_APIError(t *testing.T) {
 
 func TestLabelNamesHandler_Success(t *testing.T) {
 	mock := &mock.PrometheusAPI{
-		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
-			return []string{"job", "instance"}, nil, nil
+		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelNames, v1.Warnings, error) {
+			return model.LabelNames{"job", "instance"}, nil, nil
 		},
 	}
 	q := NewMetadataQuerier(mock)
@@ -84,7 +84,7 @@ func TestLabelNamesHandler_Success(t *testing.T) {
 
 func TestLabelNamesHandler_APIError(t *testing.T) {
 	mock := &mock.PrometheusAPI{
-		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
+		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelNames, v1.Warnings, error) {
 			return nil, nil, errors.New("api error")
 		},
 	}
@@ -97,8 +97,8 @@ func TestLabelNamesHandler_APIError(t *testing.T) {
 
 func TestLabelNamesHandler_InvalidTime(t *testing.T) {
 	mock := &mock.PrometheusAPI{
-		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
-			return []string{"job"}, nil, nil
+		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelNames, v1.Warnings, error) {
+			return model.LabelNames{"job"}, nil, nil
 		},
 	}
 	q := NewMetadataQuerier(mock)
@@ -179,11 +179,11 @@ func TestSeriesHandler_WithTimeAndLimit(t *testing.T) {
 
 func TestLabelNamesHandler_WithTimeAndLimit(t *testing.T) {
 	mock := &mock.PrometheusAPI{
-		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
+		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelNames, v1.Warnings, error) {
 			if len(opts) != 1 {
 				t.Fatalf("expected 1 option, got %d", len(opts))
 			}
-			return []string{"job", "instance"}, nil, nil
+			return model.LabelNames{"job", "instance"}, nil, nil
 		},
 	}
 	q := NewMetadataQuerier(mock)

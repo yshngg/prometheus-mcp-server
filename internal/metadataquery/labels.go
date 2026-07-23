@@ -45,8 +45,7 @@ func (q *metadataQuerier) LabelNamesHandler(ctx context.Context, request *mcp.Ca
 	}
 
 	result := &LabelNamesResult{}
-	var names []string
-	if names, result.Warnings, err = q.API.LabelNames(
+	if result.LabelNames, result.Warnings, err = q.API.LabelNames(
 		ctx,
 		input.Match,
 		start,
@@ -54,10 +53,6 @@ func (q *metadataQuerier) LabelNamesHandler(ctx context.Context, request *mcp.Ca
 		opts...,
 	); err != nil {
 		return nil, nil, err
-	}
-	result.LabelNames = make(model.LabelNames, len(names))
-	for i, n := range names {
-		result.LabelNames[i] = model.LabelName(n)
 	}
 	return nil, result, nil
 }

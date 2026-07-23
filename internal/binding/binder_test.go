@@ -453,8 +453,8 @@ func TestResources_ReadResourceTemplateLabelValues(t *testing.T) {
 func TestHandleCompletion_LabelValues(t *testing.T) {
 	ctx := context.Background()
 	mock := &mock.PrometheusAPI{
-		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
-			return []string{"__name__", "job", "instance"}, nil, nil
+		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelNames, v1.Warnings, error) {
+			return model.LabelNames{"__name__", "job", "instance"}, nil, nil
 		},
 	}
 	req := &mcp.CompleteRequest{

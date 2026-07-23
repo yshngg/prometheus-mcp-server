@@ -296,8 +296,8 @@ func TestAuthMiddleware_MissingToken(t *testing.T) {
 
 func TestHandleCompletion_ResourceLabelValues(t *testing.T) {
 	mock := &mock.PrometheusAPI{
-		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
-			return []string{"__name__", "job", "instance", "namespace"}, nil, nil
+		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelNames, v1.Warnings, error) {
+			return model.LabelNames{"__name__", "job", "instance", "namespace"}, nil, nil
 		},
 	}
 	req := &mcp.CompleteRequest{
@@ -324,8 +324,8 @@ func TestHandleCompletion_ResourceLabelValues(t *testing.T) {
 
 func TestHandleCompletion_ResourceLabelValuesEmptyPrefix(t *testing.T) {
 	mock := &mock.PrometheusAPI{
-		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
-			return []string{"__name__", "job", "instance"}, nil, nil
+		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelNames, v1.Warnings, error) {
+			return model.LabelNames{"__name__", "job", "instance"}, nil, nil
 		},
 	}
 	req := &mcp.CompleteRequest{
@@ -414,7 +414,7 @@ func TestHandleCompletion_PromptMetricNames(t *testing.T) {
 
 func TestHandleCompletion_APIError(t *testing.T) {
 	mock := &mock.PrometheusAPI{
-		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
+		LabelNamesFunc: func(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...v1.Option) (model.LabelNames, v1.Warnings, error) {
 			return nil, nil, errors.New("api error")
 		},
 	}
