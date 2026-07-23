@@ -3,7 +3,7 @@ module github.com/yshngg/prometheus-mcp-server
 go 1.25.0
 
 require (
-	github.com/modelcontextprotocol/go-sdk v1.7.0-pre.2
+	github.com/modelcontextprotocol/go-sdk v1.7.0-pre.3
 	github.com/prometheus/client_golang v1.24.0
 	github.com/prometheus/common v0.70.1
 	k8s.io/klog/v2 v2.140.0
