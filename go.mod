@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/modelcontextprotocol/go-sdk v1.7.0-pre.2
 	github.com/prometheus/client_golang v1.24.1
-	github.com/prometheus/common v0.70.1
+	github.com/prometheus/common v0.71.0
 	k8s.io/klog/v2 v2.140.0
 )
 
@@ -27,5 +27,5 @@ require (
 	golang.org/x/sync v0.21.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
-	google.golang.org/protobuf v1.36.11 // indirect
+	google.golang.org/protobuf v1.36.12 // indirect
 )
