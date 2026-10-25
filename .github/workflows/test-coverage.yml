@@ -66,7 +66,7 @@ jobs:
 
       - name: Check test coverage
         id: coverage
-        uses: vladopajic/go-test-coverage@v2
+        uses: vladopajic/go-test-coverage@v2201
         continue-on-error: true # Should fail after coverage comment is posted
         with:
           profile: cover.out
